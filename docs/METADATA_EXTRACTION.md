@@ -31,7 +31,9 @@ filo meta image.png -s
 filo meta file.jpg --json
 ```
 
-### CTF Workflow Example
+### CTF Workflow Examples
+
+#### Example 1: Steghide Password in JPEG Comment
 
 **Challenge**: Find hidden steghide password in image metadata
 
@@ -58,6 +60,33 @@ pAzzword
 
 ```bash
 # Step 3: Extract with steghide
+$ steghide extract -sf challenge.jpg -p pAzzword
+wrote extracted data to "flag.txt"
+```
+
+#### Example 2: Flag in XMP License (picoCTF "information")
+
+**Challenge**: Metadata contains the flag
+
+```bash
+# Step 1: Quick suspicious scan
+$ filo meta cat.jpg -s
+
+🚨 Suspicious Metadata Found:
+
+XMP:License:
+  cGljb0NURnt0aGVfbTN0YWRhdGFfMXNfbW9kaWZpZWR9
+```
+
+```bash
+# Step 2: Decode base64
+$ echo "cGljb0NURnt0aGVfbTN0YWRhdGFfMXNfbW9kaWZpZWR9" | base64 -d
+picoCTF{the_m3tadata_1s_modified}
+```
+
+**Why this works**: Filo parses XMP License field from XML and flags base64 content automatically.
+
+---
 $ steghide extract -sf challenge.jpg -p pAzzword
 wrote extracted data to "flag.txt".
 ```
@@ -104,9 +133,25 @@ wrote extracted data to "flag.txt".
 - **ImageSize**: Width×Height (e.g., `2999x2249`)
 - **Megapixels**: Computed from dimensions (e.g., `6.7`)
 
-#### Comments & XMP
+#### IPTC Metadata
+- **CopyrightNotice**: Copyright information (⚠ **auto-flagged if suspicious**)
+- **Keywords**: Image keywords/tags
+- **ByLine**: Author/photographer
+- **Caption**: Image description
+- **Headline**: Brief title
+- **Credit**, **Source**: Attribution fields
+- **Contact**, **City**, **CountryName**: Location/contact metadata
+
+#### XMP Metadata (Parsed from XML)
+- **License**: Creative Commons license (⚠ **auto-flagged if suspicious** - common CTF flag location)
+- **Rights**: Copyright/rights statement
+- **Creator**: Content creator
+- **Title**: Document title
+- **XMPToolkit**: Tool that created XMP
+- **XMP_Raw**: Full XML metadata (truncated to 500 chars)
+
+#### Comments
 - **Comment**: JPEG comment marker (⚠ **auto-flagged if suspicious**)
-- **XMP**: XML metadata (truncated to 500 chars)
 
 ---
 
@@ -138,7 +183,8 @@ Filo automatically flags metadata fields containing:
 
 ### Base64-Encoded Data
 - Strings with 20+ consecutive alphanumeric characters ending in `=` or `==`
-- Common in CTF challenges to hide passwords or payloads
+- **Common CTF location**: XMP License field (e.g., `cGljb0NURnt0aGVfbTN0YWRhdGFfMXNfbW9kaWZpZWR9`)
+- Also found in JPEG Comments, IPTC fields
 
 ### Steganography Hints
 - Keywords: `steghide`, `stegseek`, `hidden`, `encrypted`
@@ -332,10 +378,36 @@ Filo parses JPEG markers sequentially:
 2. **APP0 (0xFFE0)**: JFIF metadata
 3. **APP1 (0xFFE1)**: EXIF, XMP
 4. **APP2 (0xFFE2)**: ICC Profile
-5. **APP13 (0xFFED)**: IPTC/Photoshop
+5. **APP13 (0xFFED)**: IPTC/Photoshop metadata (8BIM resources)
 6. **COM (0xFFFE)**: Comment marker
 7. **SOF0-SOF15 (0xFFC0-0xFFCF)**: Image dimensions, encoding
 8. **EOI (0xFFD9)**: End of Image
+
+### IPTC Record Parsing
+
+IPTC metadata uses 8BIM resource blocks (APP13 segment):
+
+- **Resource 0x0404**: IPTC-NAA records
+- Record format: `0x1C` (tag marker) + record number + dataset number + length + value
+- Application Record 2 (most common):
+  - Dataset 116: CopyrightNotice
+  - Dataset 80: ByLine (author)
+  - Dataset 25: Keywords
+  - Dataset 120: Caption
+  - Dataset 110: Credit
+  - Dataset 90-101: Location metadata (City, Country)
+
+### XMP Metadata Parsing
+
+XMP uses RDF/XML structure embedded in APP1 segments:
+
+- Namespace: `http://ns.adobe.com/xap/1.0/`
+- Common fields extracted via regex:
+  - `cc:license` (Creative Commons license - **common CTF flag location**)
+  - `dc:rights` (Copyright statement)
+  - `dc:creator` (Content creator)
+  - `dc:title` (Document title)
+- Full XML preserved in `XMP_Raw` field (truncated to 500 chars)
 
 ### PNG Chunk Parsing
 
