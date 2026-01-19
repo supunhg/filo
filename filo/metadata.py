@@ -434,27 +434,197 @@ class JPEGMetadataExtractor:
         return None
     
     def _extract_xmp(self, data: bytes, result: MetadataResult):
-        """Extract XMP metadata (basic extraction)"""
+        """Extract XMP metadata (parse key fields from XML)"""
         try:
             xmp = data.decode('utf-8', errors='ignore')
+            
+            # Extract common XMP fields using simple parsing
+            import re
+            
+            # cc:license - often contains hidden data
+            license_match = re.search(r"<cc:license[^>]*rdf:resource=['\"]([^'\"]+)['\"]", xmp)
+            if license_match:
+                license_value = license_match.group(1)
+                result.fields.append(MetadataField(
+                    key="License",
+                    value=license_value,
+                    group="XMP",
+                    description="Creative Commons license"
+                ))
+                if self._is_suspicious(license_value):
+                    result.has_suspicious = True
+                    result.suspicious_fields.append("License")
+            
+            # dc:rights
+            rights_match = re.search(r"<dc:rights>\s*<rdf:Alt>\s*<rdf:li[^>]*>([^<]+)", xmp, re.DOTALL)
+            if rights_match:
+                rights_value = rights_match.group(1).strip()
+                result.fields.append(MetadataField(
+                    key="Rights",
+                    value=rights_value,
+                    group="XMP"
+                ))
+            
+            # dc:creator
+            creator_match = re.search(r"<dc:creator>\s*<rdf:Seq>\s*<rdf:li>([^<]+)", xmp)
+            if creator_match:
+                result.fields.append(MetadataField(
+                    key="Creator",
+                    value=creator_match.group(1),
+                    group="XMP"
+                ))
+            
+            # dc:title
+            title_match = re.search(r"<dc:title>\s*<rdf:Alt>\s*<rdf:li[^>]*>([^<]+)", xmp, re.DOTALL)
+            if title_match:
+                result.fields.append(MetadataField(
+                    key="Title",
+                    value=title_match.group(1).strip(),
+                    group="XMP"
+                ))
+            
+            # xmp:CreatorTool / tiff:Software
+            tool_match = re.search(r"<(?:xmp:CreatorTool|tiff:Software)>([^<]+)", xmp)
+            if tool_match:
+                result.fields.append(MetadataField(
+                    key="XMPToolkit",
+                    value=tool_match.group(1),
+                    group="XMP"
+                ))
+            
+            # Store full XMP as well (truncated for display)
             result.fields.append(MetadataField(
-                key="XMP",
+                key="XMP_Raw",
                 value=xmp[:500] if len(xmp) > 500 else xmp,
                 group="XMP",
-                description="XML-based metadata"
+                description="Raw XMP metadata (truncated)" if len(xmp) > 500 else "Raw XMP metadata"
             ))
+            
         except Exception as e:
             result.warnings.append(f"Failed to extract XMP: {e}")
     
     def _extract_iptc(self, data: bytes, result: MetadataResult):
         """Extract IPTC metadata"""
-        # IPTC parsing is complex - basic implementation
-        result.fields.append(MetadataField(
-            key="IPTC",
-            value="Present",
-            group="IPTC",
-            description="IPTC/Photoshop metadata block found"
-        ))
+        try:
+            # IPTC uses 8BIM resource blocks
+            offset = 0
+            while offset < len(data) - 12:
+                # Look for 8BIM signature
+                if data[offset:offset+4] == b'8BIM':
+                    resource_id = struct.unpack('>H', data[offset+4:offset+6])[0]
+                    
+                    # Skip name (pascal string)
+                    name_len = data[offset+6]
+                    # Name length is padded to even
+                    name_padding = 1 if name_len % 2 == 0 else 0
+                    name_offset = offset + 7 + name_len + name_padding
+                    
+                    if name_offset + 4 > len(data):
+                        break
+                    
+                    # Resource data size
+                    data_size = struct.unpack('>I', data[name_offset:name_offset+4])[0]
+                    data_start = name_offset + 4
+                    
+                    if data_start + data_size > len(data):
+                        break
+                    
+                    # Resource 0x0404 = IPTC data
+                    if resource_id == 0x0404:
+                        iptc_data = data[data_start:data_start+data_size]
+                        self._parse_iptc_records(iptc_data, result)
+                        return
+                    
+                    # Move to next resource (pad to even)
+                    offset = data_start + data_size
+                    if data_size % 2 == 1:
+                        offset += 1
+                else:
+                    offset += 1
+            
+            # If we didn't find detailed IPTC, just note presence
+            result.fields.append(MetadataField(
+                key="IPTC",
+                value="Present",
+                group="IPTC",
+                description="IPTC/Photoshop metadata block found"
+            ))
+        except Exception as e:
+            logger.debug(f"Failed to extract IPTC: {e}")
+    
+    def _parse_iptc_records(self, data: bytes, result: MetadataResult):
+        """Parse IPTC records from data"""
+        offset = 0
+        while offset < len(data) - 5:
+            # IPTC record format: 0x1C, record number, dataset number, length
+            if data[offset] != 0x1C:
+                offset += 1
+                continue
+            
+            record_num = data[offset+1]
+            dataset_num = data[offset+2]
+            
+            # Get length (can be 2 or 4 bytes)
+            if offset + 4 > len(data):
+                break
+            
+            length_bytes = struct.unpack('>H', data[offset+3:offset+5])[0]
+            
+            # Extended format (length > 32767)
+            if length_bytes > 0x7FFF:
+                if offset + 7 > len(data):
+                    break
+                length = struct.unpack('>I', data[offset+5:offset+9])[0]
+                value_start = offset + 9
+            else:
+                length = length_bytes
+                value_start = offset + 5
+            
+            if value_start + length > len(data):
+                break
+            
+            value_data = data[value_start:value_start+length]
+            
+            # Common IPTC fields (Application Record 2)
+            if record_num == 2:
+                iptc_fields = {
+                    5: "ObjectName",
+                    25: "Keywords",
+                    40: "SpecialInstructions",
+                    80: "ByLine",  # Author
+                    85: "ByLineTitle",
+                    90: "City",
+                    95: "ProvinceState",
+                    100: "CountryCode",
+                    101: "CountryName",
+                    105: "Headline",
+                    110: "Credit",
+                    115: "Source",
+                    116: "CopyrightNotice",
+                    118: "Contact",
+                    120: "Caption",
+                    122: "CaptionWriter"
+                }
+                
+                field_name = iptc_fields.get(dataset_num)
+                if field_name:
+                    try:
+                        value = value_data.decode('utf-8', errors='ignore').strip()
+                        if value:
+                            result.fields.append(MetadataField(
+                                key=field_name,
+                                value=value,
+                                group="IPTC"
+                            ))
+                            
+                            # Check for suspicious content
+                            if self._is_suspicious(value):
+                                result.has_suspicious = True
+                                result.suspicious_fields.append(field_name)
+                    except:
+                        pass
+            
+            offset = value_start + length
     
     def _extract_icc_profile(self, data: bytes, result: MetadataResult):
         """Extract ICC color profile metadata"""

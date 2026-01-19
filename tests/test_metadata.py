@@ -1,5 +1,6 @@
 """Tests for metadata extraction module"""
 
+import struct
 import pytest
 from filo.metadata import (
     extract_metadata,
@@ -469,3 +470,122 @@ class TestFixtures:
         assert (fixtures_dir / "with_text.png").exists()
         assert (fixtures_dir / "with_suspicious.png").exists()
         assert (fixtures_dir / "with_time.png").exists()
+
+
+class TestIPTCParsing:
+    """Test IPTC metadata extraction"""
+    
+    def test_iptc_copyright_notice(self):
+        """Test IPTC copyright notice extraction"""
+        # Create minimal JPEG with IPTC copyright
+        data = bytearray()
+        data.extend(b'\xFF\xD8')  # SOI
+        
+        # APP13 marker (Photoshop)
+        app13_data = bytearray()
+        app13_data.extend(b'Photoshop 3.0\x00')
+        app13_data.extend(b'8BIM')  # 8BIM signature
+        app13_data.extend(struct.pack('>H', 0x0404))  # IPTC resource ID
+        app13_data.extend(b'\x00')  # Name length (0)
+        app13_data.extend(b'\x00')  # Padding
+        
+        # IPTC data
+        iptc_data = bytearray()
+        copyright_text = b'PicoCTF'
+        iptc_data.append(0x1C)  # Tag marker
+        iptc_data.append(2)  # Record 2 (Application)
+        iptc_data.append(116)  # Dataset 116 (CopyrightNotice)
+        iptc_data.extend(struct.pack('>H', len(copyright_text)))
+        iptc_data.extend(copyright_text)
+        
+        app13_data.extend(struct.pack('>I', len(iptc_data)))
+        app13_data.extend(iptc_data)
+        
+        data.extend(b'\xFF\xED')  # APP13
+        data.extend(struct.pack('>H', len(app13_data) + 2))
+        data.extend(app13_data)
+        
+        data.extend(b'\xFF\xD9')  # EOI
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(bytes(data))
+        
+        # Check copyright notice
+        copyright_fields = [f for f in result.fields if f.key == "CopyrightNotice"]
+        assert len(copyright_fields) == 1
+        assert copyright_fields[0].value == "PicoCTF"
+        assert copyright_fields[0].group == "IPTC"
+
+
+class TestXMPParsing:
+    """Test XMP metadata extraction"""
+    
+    def test_xmp_license_base64(self):
+        """Test XMP license extraction with base64 (CTF scenario)"""
+        # Create minimal JPEG with XMP containing base64 license
+        data = bytearray()
+        data.extend(b'\xFF\xD8')  # SOI
+        
+        xmp_data = b'''<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 10.80'>
+<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+ <rdf:Description rdf:about=''
+  xmlns:cc='http://creativecommons.org/ns#'>
+  <cc:license rdf:resource='cGljb0NURnt0aGVfbTN0YWRhdGFfMXNfbW9kaWZpZWR9'/>
+ </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>'''
+        
+        data.extend(b'\xFF\xE1')  # APP1
+        data.extend(struct.pack('>H', len(xmp_data) + 2 + 29))
+        data.extend(b'http://ns.adobe.com/xap/1.0/\x00')
+        data.extend(xmp_data)
+        
+        data.extend(b'\xFF\xD9')  # EOI
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(bytes(data))
+        
+        # Check XMP license
+        license_fields = [f for f in result.fields if f.key == "License"]
+        assert len(license_fields) == 1
+        assert license_fields[0].value == "cGljb0NURnt0aGVfbTN0YWRhdGFfMXNfbW9kaWZpZWR9"
+        assert license_fields[0].group == "XMP"
+        
+        # Should be flagged as suspicious
+        assert result.has_suspicious
+        assert "License" in result.suspicious_fields
+    
+    def test_xmp_rights(self):
+        """Test XMP rights/creator extraction"""
+        xmp_data = b'''<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/'>
+<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+ <rdf:Description rdf:about=''
+  xmlns:dc='http://purl.org/dc/elements/1.1/'>
+  <dc:rights>
+   <rdf:Alt>
+    <rdf:li xml:lang='x-default'>PicoCTF</rdf:li>
+   </rdf:Alt>
+  </dc:rights>
+ </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>'''
+        
+        data = bytearray()
+        data.extend(b'\xFF\xD8')  # SOI
+        data.extend(b'\xFF\xE1')  # APP1
+        data.extend(struct.pack('>H', len(xmp_data) + 2 + 29))
+        data.extend(b'http://ns.adobe.com/xap/1.0/\x00')
+        data.extend(xmp_data)
+        data.extend(b'\xFF\xD9')  # EOI
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(bytes(data))
+        
+        # Check rights field
+        rights_fields = [f for f in result.fields if f.key == "Rights"]
+        assert len(rights_fields) == 1
+        assert rights_fields[0].value == "PicoCTF"
+        assert rights_fields[0].group == "XMP"
