@@ -1380,6 +1380,108 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
 
 
 @main.command()
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option("--suspicious-only", is_flag=True, help="Only show suspicious/hidden metadata")
+def metadata(file_path: str, output_json: bool, suspicious_only: bool) -> None:
+    """
+    Extract metadata from image files (JPEG, PNG).
+    
+    Similar to exiftool - extracts EXIF, IPTC, XMP, and other metadata.
+    Automatically flags suspicious content like base64-encoded data.
+    
+    Examples:
+        filo metadata photo.jpg
+        filo metadata image.png --suspicious-only
+        filo metadata file.jpg --json
+    """
+    try:
+        from filo.metadata import extract_metadata
+        
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        
+        result = extract_metadata(data)
+        
+        if output_json:
+            # JSON output
+            output = {
+                "file": str(file_path),
+                "format": result.format,
+                "metadata": [
+                    {
+                        "group": field.group,
+                        "key": field.key,
+                        "value": str(field.value),
+                        "tag_id": field.tag_id,
+                        "description": field.description
+                    }
+                    for field in result.fields
+                ],
+                "warnings": result.warnings,
+                "has_suspicious": result.has_suspicious,
+                "suspicious_fields": result.suspicious_fields
+            }
+            console.print_json(data=output)
+            return
+        
+        # Rich console output
+        console.print(f"\n[bold]File:[/bold] {file_path}")
+        console.print(f"[bold]Format:[/bold] {result.format}\n")
+        
+        if result.warnings:
+            console.print("[yellow]Warnings:[/yellow]")
+            for warning in result.warnings:
+                console.print(f"  ⚠ {warning}")
+            console.print()
+        
+        # Group metadata by category
+        grouped = {}
+        for field in result.fields:
+            if field.group not in grouped:
+                grouped[field.group] = []
+            grouped[field.group].append(field)
+        
+        # Filter to suspicious only if requested
+        if suspicious_only and result.has_suspicious:
+            console.print("[bold yellow]🚨 Suspicious Metadata Found:[/bold yellow]\n")
+            for field in result.fields:
+                if field.key in result.suspicious_fields:
+                    console.print(f"[yellow]{field.group}:{field.key}:[/yellow]")
+                    console.print(f"  {field.value}\n")
+        else:
+            # Show all metadata grouped
+            for group, fields in sorted(grouped.items()):
+                console.print(f"[bold cyan]{group}[/bold cyan]")
+                
+                for field in fields:
+                    # Highlight suspicious fields
+                    if field.key in result.suspicious_fields:
+                        console.print(f"  [yellow]⚠ {field.key}:[/yellow] {field.value}")
+                    else:
+                        console.print(f"  {field.key}: {field.value}")
+                    
+                    # Show tag ID if present
+                    if field.tag_id is not None:
+                        console.print(f"    [dim]Tag ID: 0x{field.tag_id:04X}[/dim]")
+                
+                console.print()
+        
+        # Summary for suspicious content
+        if result.has_suspicious:
+            console.print(f"[bold yellow]⚠ {len(result.suspicious_fields)} suspicious field(s) detected[/bold yellow]")
+            console.print("[dim]These may contain encoded/hidden data (e.g., base64, steghide passwords)[/dim]")
+            console.print("[dim]Use --suspicious-only to filter suspicious fields only[/dim]\n")
+    
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        if "--debug" in sys.argv:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@main.command()
 @click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt")
 def reset_ml(yes: bool) -> None:
     """Reset ML model (deletes all learned patterns)."""

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "filo-forensics"
-version = "0.2.8"
+version = "0.2.9"
 description = "Forensic Intelligence & Ligation Orchestrator - Battle-tested file forensics platform"
 readme = "README.md"
 requires-python = ">=3.10"
