@@ -1379,21 +1379,21 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
         sys.exit(1)
 
 
-@main.command()
+@main.command(name="meta")
 @click.argument("file_path", type=click.Path(exists=True))
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
-@click.option("--suspicious-only", is_flag=True, help="Only show suspicious/hidden metadata")
+@click.option("-s", "--sus", "suspicious_only", is_flag=True, help="Only show suspicious/hidden metadata")
 def metadata(file_path: str, output_json: bool, suspicious_only: bool) -> None:
     """
     Extract metadata from image files (JPEG, PNG).
     
-    Similar to exiftool - extracts EXIF, IPTC, XMP, and other metadata.
+    Similar to exiftool - extracts EXIF, IPTC, XMP, ICC profiles, and other metadata.
     Automatically flags suspicious content like base64-encoded data.
     
     Examples:
-        filo metadata photo.jpg
-        filo metadata image.png --suspicious-only
-        filo metadata file.jpg --json
+        filo meta photo.jpg
+        filo meta image.png -s
+        filo meta file.jpg --json
     """
     try:
         from filo.metadata import extract_metadata
@@ -1471,7 +1471,7 @@ def metadata(file_path: str, output_json: bool, suspicious_only: bool) -> None:
         if result.has_suspicious:
             console.print(f"[bold yellow]⚠ {len(result.suspicious_fields)} suspicious field(s) detected[/bold yellow]")
             console.print("[dim]These may contain encoded/hidden data (e.g., base64, steghide passwords)[/dim]")
-            console.print("[dim]Use --suspicious-only to filter suspicious fields only[/dim]\n")
+            console.print("[dim]Use -s or --sus to filter suspicious fields only[/dim]\n")
     
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")

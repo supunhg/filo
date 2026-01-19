@@ -89,12 +89,25 @@ class JPEGMetadataExtractor:
             result.warnings.append("Not a valid JPEG file")
             return result
         
+        # Track width/height for computed fields
+        image_width = None
+        image_height = None
+        encoding_process = None
+        subsampling = None
+        
         # Extract basic file info
         result.fields.append(MetadataField(
             key="FileType",
             value="JPEG",
             group="File",
             description="JPEG image"
+        ))
+        
+        result.fields.append(MetadataField(
+            key="MIMEType",
+            value="image/jpeg",
+            group="File",
+            description="MIME type"
         ))
         
         result.fields.append(MetadataField(
@@ -141,6 +154,10 @@ class JPEGMetadataExtractor:
             elif marker == 0xE1 and segment_data.startswith(b'http://ns.adobe.com/xap/1.0/\x00'):
                 self._extract_xmp(segment_data[29:], result)
             
+            # APP2 - ICC Profile
+            elif marker == 0xE2 and segment_data.startswith(b'ICC_PROFILE\x00'):
+                self._extract_icc_profile(segment_data[12:], result)
+            
             # APP13 - IPTC/Photoshop
             elif marker == 0xED and segment_data.startswith(b'Photoshop 3.0\x00'):
                 self._extract_iptc(segment_data[14:], result)
@@ -161,12 +178,43 @@ class JPEGMetadataExtractor:
                         result.suspicious_fields.append("Comment")
             
             # SOF markers - image info
-            elif marker in (0xC0, 0xC1, 0xC2, 0xC3):
+            elif marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
                 if len(segment_data) >= 6:
                     bits_per_sample = segment_data[0]
                     height = struct.unpack('>H', segment_data[1:3])[0]
                     width = struct.unpack('>H', segment_data[3:5])[0]
                     num_components = segment_data[5]
+                    
+                    image_width = width
+                    image_height = height
+                    
+                    # Determine encoding process
+                    sof_types = {
+                        0xC0: "Baseline DCT, Huffman coding",
+                        0xC1: "Extended sequential DCT, Huffman coding",
+                        0xC2: "Progressive DCT, Huffman coding",
+                        0xC3: "Lossless, Huffman coding",
+                        0xC5: "Differential sequential DCT, Huffman coding",
+                        0xC6: "Differential progressive DCT, Huffman coding",
+                        0xC7: "Differential lossless, Huffman coding",
+                        0xC9: "Extended sequential DCT, Arithmetic coding",
+                        0xCA: "Progressive DCT, Arithmetic coding",
+                        0xCB: "Lossless, Arithmetic coding",
+                        0xCD: "Differential sequential DCT, Arithmetic coding",
+                        0xCE: "Differential progressive DCT, Arithmetic coding",
+                        0xCF: "Differential lossless, Arithmetic coding"
+                    }
+                    encoding_process = sof_types.get(marker, f"Unknown SOF marker 0x{marker:02X}")
+                    
+                    # Extract subsampling if available
+                    if len(segment_data) >= 17 and num_components == 3:
+                        # YCbCr subsampling
+                        y_h = (segment_data[7] >> 4) & 0x0F
+                        y_v = segment_data[7] & 0x0F
+                        cb_h = (segment_data[10] >> 4) & 0x0F
+                        cb_v = segment_data[10] & 0x0F
+                        
+                        subsampling = f"YCbCr4:{cb_h*4//y_h}:{cb_v*4//y_v} ({y_h} {y_v})"
                     
                     result.fields.append(MetadataField(
                         key="ImageWidth",
@@ -181,6 +229,11 @@ class JPEGMetadataExtractor:
                         description="Image height in pixels"
                     ))
                     result.fields.append(MetadataField(
+                        key="EncodingProcess",
+                        value=encoding_process,
+                        group="JPEG"
+                    ))
+                    result.fields.append(MetadataField(
                         key="BitsPerSample",
                         value=bits_per_sample,
                         group="JPEG"
@@ -190,8 +243,28 @@ class JPEGMetadataExtractor:
                         value=num_components,
                         group="JPEG"
                     ))
+                    if subsampling:
+                        result.fields.append(MetadataField(
+                            key="YCbCrSubSampling",
+                            value=subsampling,
+                            group="JPEG"
+                        ))
             
             offset += segment_len
+        
+        # Add computed fields
+        if image_width and image_height:
+            result.fields.append(MetadataField(
+                key="ImageSize",
+                value=f"{image_width}x{image_height}",
+                group="Computed"
+            ))
+            megapixels = (image_width * image_height) / 1_000_000
+            result.fields.append(MetadataField(
+                key="Megapixels",
+                value=f"{megapixels:.1f}",
+                group="Computed"
+            ))
         
         return result
     
@@ -201,7 +274,8 @@ class JPEGMetadataExtractor:
             return
         
         version = f"{data[5]}.{data[6]:02d}"
-        density_units = ["None", "pixels/inch", "pixels/cm"][data[7]] if data[7] <= 2 else "Unknown"
+        density_units_map = {0: "None", 1: "inches", 2: "cm"}
+        density_units = density_units_map.get(data[7], "Unknown")
         x_density = struct.unpack('>H', data[8:10])[0]
         y_density = struct.unpack('>H', data[10:12])[0]
         
@@ -381,6 +455,112 @@ class JPEGMetadataExtractor:
             group="IPTC",
             description="IPTC/Photoshop metadata block found"
         ))
+    
+    def _extract_icc_profile(self, data: bytes, result: MetadataResult):
+        """Extract ICC color profile metadata"""
+        if len(data) < 128:
+            return
+        
+        try:
+            # ICC Profile header structure
+            # Bytes 0-3: Profile size
+            # Bytes 4-7: CMM Type
+            # Bytes 8-11: Profile version
+            # Bytes 12-15: Profile class
+            # Bytes 16-19: Color space
+            # Bytes 20-23: PCS (Profile Connection Space)
+            
+            if len(data) >= 4:
+                # Skip sequence number (first 2 bytes in APP2 ICC)
+                if data[0] in range(1, 256) and data[1] in range(1, 256):
+                    data = data[2:]  # Skip sequence marker
+            
+            if len(data) >= 128:
+                # CMM Type (bytes 4-7)
+                cmm_type = data[4:8].decode('ascii', errors='ignore').strip()
+                if cmm_type:
+                    result.fields.append(MetadataField(
+                        key="ProfileCMMType",
+                        value=cmm_type,
+                        group="ICC_Profile"
+                    ))
+                
+                # Profile version (bytes 8-11)
+                if len(data) >= 12:
+                    major = data[8]
+                    minor = data[9] >> 4
+                    patch = data[9] & 0x0F
+                    version = f"{major}.{minor}.{patch}"
+                    result.fields.append(MetadataField(
+                        key="ProfileVersion",
+                        value=version,
+                        group="ICC_Profile"
+                    ))
+                
+                # Profile class (bytes 12-15)
+                if len(data) >= 16:
+                    profile_class_map = {
+                        b'scnr': 'Input Device Profile',
+                        b'mntr': 'Display Device Profile',
+                        b'prtr': 'Output Device Profile',
+                        b'link': 'DeviceLink Profile',
+                        b'spac': 'ColorSpace Profile',
+                        b'abst': 'Abstract Profile',
+                        b'nmcl': 'NamedColor Profile'
+                    }
+                    profile_class_sig = data[12:16]
+                    profile_class = profile_class_map.get(profile_class_sig, profile_class_sig.decode('ascii', errors='ignore'))
+                    result.fields.append(MetadataField(
+                        key="ProfileClass",
+                        value=profile_class,
+                        group="ICC_Profile"
+                    ))
+                
+                # Color space (bytes 16-19)
+                if len(data) >= 20:
+                    color_space = data[16:20].decode('ascii', errors='ignore').strip()
+                    result.fields.append(MetadataField(
+                        key="ColorSpaceData",
+                        value=color_space,
+                        group="ICC_Profile"
+                    ))
+                
+                # Profile Connection Space (bytes 20-23)
+                if len(data) >= 24:
+                    pcs = data[20:24].decode('ascii', errors='ignore').strip()
+                    result.fields.append(MetadataField(
+                        key="ProfileConnectionSpace",
+                        value=pcs,
+                        group="ICC_Profile"
+                    ))
+                
+                # Copyright (tag 'cprt' - search in tag table)
+                # Profile Description (tag 'desc')
+                if len(data) >= 128:
+                    # Simple search for common text tags
+                    desc_start = data.find(b'desc\x00\x00\x00\x00')
+                    if desc_start > 0 and desc_start + 12 < len(data):
+                        # Try to extract description
+                        desc_offset = struct.unpack('>I', data[desc_start+4:desc_start+8])[0]
+                        desc_size = struct.unpack('>I', data[desc_start+8:desc_start+12])[0]
+                        if desc_offset < len(data) and desc_size < 1000:
+                            try:
+                                # Skip to actual description text (usually has length prefix)
+                                desc_data = data[desc_offset:desc_offset+min(desc_size, 200)]
+                                if len(desc_data) > 12:
+                                    # Skip length prefix and try to extract text
+                                    desc_text = desc_data[12:].split(b'\x00')[0].decode('ascii', errors='ignore')
+                                    if desc_text:
+                                        result.fields.append(MetadataField(
+                                            key="ProfileDescription",
+                                            value=desc_text,
+                                            group="ICC_Profile"
+                                        ))
+                            except:
+                                pass
+        
+        except Exception as e:
+            logger.debug(f"Failed to extract ICC profile: {e}")
     
     def _is_suspicious(self, text: str) -> bool:
         """Check if text contains suspicious patterns (base64, encoded data, etc.)"""

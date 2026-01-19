@@ -318,3 +318,154 @@ class TestSuspiciousDetection:
         assert extractor._is_suspicious("base64:SGVsbG8=")
         assert extractor._is_suspicious("encrypted:aGlkZGVu")
         assert not extractor._is_suspicious("normal text")
+
+
+class TestComputedFields:
+    """Test computed metadata fields"""
+    
+    def test_jpeg_computed_fields(self):
+        """Test ImageSize and Megapixels computation"""
+        # Create JPEG with known dimensions
+        jpeg_data = bytes.fromhex(
+            'FFD8'  # SOI
+            'FFE000104A46494600010100000100010000'  # JFIF
+            'FFC0'  # SOF0
+            '0011'  # Length
+            '08'  # Bits
+            '0BB8'  # Height = 3000
+            '0FA0'  # Width = 4000
+            '03012200021101031101'  # Components
+            'FFD9'  # EOI
+        )
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(jpeg_data)
+        
+        # Find computed fields
+        image_size = next((f for f in result.fields if f.key == "ImageSize"), None)
+        megapixels = next((f for f in result.fields if f.key == "Megapixels"), None)
+        
+        assert image_size is not None
+        assert image_size.value == "4000x3000"
+        assert image_size.group == "Computed"
+        
+        assert megapixels is not None
+        assert megapixels.value == "12.0"
+
+
+class TestICCProfile:
+    """Test ICC profile extraction"""
+    
+    def test_jpeg_icc_profile_extraction(self):
+        """Test ICC profile metadata extraction"""
+        import struct
+        
+        # Create JPEG with minimal ICC profile
+        jpeg_data = bytearray(b'\xFF\xD8')  # SOI
+        
+        # APP0 - JFIF
+        jfif = b'\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+        jpeg_data.extend(jfif)
+        
+        # APP2 - ICC Profile
+        icc_header = b'ICC_PROFILE\x00\x01\x01'
+        icc_profile = bytearray(128)
+        struct.pack_into('>I', icc_profile, 0, 128)  # Profile size
+        icc_profile[4:8] = b'appl'  # CMM Type
+        icc_profile[8:11] = b'\x02\x20\x00'  # Version 2.2.0
+        icc_profile[12:16] = b'mntr'  # Display device
+        icc_profile[16:20] = b'RGB '  # RGB color space
+        icc_profile[20:24] = b'XYZ '  # XYZ PCS
+        
+        app2_data = icc_header + icc_profile
+        jpeg_data.extend(b'\xFF\xE2')  # APP2 marker
+        jpeg_data.extend(struct.pack('>H', len(app2_data) + 2))
+        jpeg_data.extend(app2_data)
+        
+        # SOF0 and EOI
+        jpeg_data.extend(b'\xFF\xC0\x00\x11\x08\x00\x64\x00\x64\x03\x01\x11\x00\x02\x11\x01\x03\x11\x01')
+        jpeg_data.extend(b'\xFF\xD9')
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(bytes(jpeg_data))
+        
+        # Check ICC fields
+        icc_fields = [f for f in result.fields if f.group == "ICC_Profile"]
+        assert len(icc_fields) > 0
+        
+        # Check specific fields
+        cmm_field = next((f for f in icc_fields if f.key == "ProfileCMMType"), None)
+        assert cmm_field is not None
+        assert cmm_field.value == "appl"
+        
+        version_field = next((f for f in icc_fields if f.key == "ProfileVersion"), None)
+        assert version_field is not None
+        assert version_field.value == "2.2.0"
+
+
+class TestEncodingProcess:
+    """Test encoding process detection"""
+    
+    def test_baseline_dct(self):
+        """Test Baseline DCT detection"""
+        jpeg_data = bytes.fromhex(
+            'FFD8FFE000104A46494600010100000100010000'
+            'FFC00011080064006403011100021101031101'  # SOF0 = Baseline DCT
+            'FFD9'
+        )
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(jpeg_data)
+        
+        encoding = next((f for f in result.fields if f.key == "EncodingProcess"), None)
+        assert encoding is not None
+        assert "Baseline DCT" in encoding.value
+        assert "Huffman" in encoding.value
+    
+    def test_progressive_dct(self):
+        """Test Progressive DCT detection"""
+        jpeg_data = bytes.fromhex(
+            'FFD8FFE000104A46494600010100000100010000'
+            'FFC20011080064006403011100021101031101'  # SOF2 = Progressive DCT
+            'FFD9'
+        )
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(jpeg_data)
+        
+        encoding = next((f for f in result.fields if f.key == "EncodingProcess"), None)
+        assert encoding is not None
+        assert "Progressive DCT" in encoding.value
+
+
+class TestMIMEType:
+    """Test MIME type extraction"""
+    
+    def test_jpeg_mime_type(self):
+        """Test JPEG MIME type"""
+        jpeg_data = bytes.fromhex('FFD8FFD9')  # Minimal JPEG
+        
+        extractor = JPEGMetadataExtractor()
+        result = extractor.extract(jpeg_data)
+        
+        mime_field = next((f for f in result.fields if f.key == "MIMEType"), None)
+        assert mime_field is not None
+        assert mime_field.value == "image/jpeg"
+        assert mime_field.group == "File"
+
+
+class TestFixtures:
+    """Test with generated fixture files"""
+    
+    def test_fixture_files_exist(self):
+        """Ensure fixture files were generated"""
+        from pathlib import Path
+        
+        fixtures_dir = Path(__file__).parent / "fixtures" / "metadata"
+        
+        assert (fixtures_dir / "minimal.jpg").exists()
+        assert (fixtures_dir / "with_comment.jpg").exists()
+        assert (fixtures_dir / "with_icc.jpg").exists()
+        assert (fixtures_dir / "with_text.png").exists()
+        assert (fixtures_dir / "with_suspicious.png").exists()
+        assert (fixtures_dir / "with_time.png").exists()
