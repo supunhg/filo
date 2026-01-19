@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="0.2.8"
+VERSION="0.2.9"
 PKG_NAME="filo-forensics_${VERSION}_all"
 BUILD_DIR="build/${PKG_NAME}"
 

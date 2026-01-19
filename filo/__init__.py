@@ -9,7 +9,7 @@ from filo.container import ContainerDetector, analyze_archive
 from filo.profiler import Profiler, profile_session
 from filo.stego import detect_steganography, PNGStegoDetector, BMPStegoDetector, PDFMetadataDetector, TrailingDataDetector
 
-__version__ = "0.2.6"
+__version__ = "0.2.9"
 __author__ = "Supun Hewagamage"
 __all__ = [
     "Analyzer", 
