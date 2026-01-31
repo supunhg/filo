@@ -1,4 +1,4 @@
-# Filo - Forensic Intelligence & Ligation Orchestrator
+# Filo - Forensic Intelligence & Litigation Orchestrator
 
 **Battle-tested file forensics platform for security professionals**
 
