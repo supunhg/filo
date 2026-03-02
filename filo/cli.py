@@ -121,6 +121,7 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                 ],
                 "file_size": result.file_size,
                 "entropy": result.entropy,
+                "crypto_analysis": result.crypto_analysis,
                 "checksum": result.checksum_sha256,
                 "evidence": result.evidence_chain,
             }
@@ -329,6 +330,39 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
             console.print(f"\n[bold]File Size:[/bold] {result.file_size:,} bytes")
             if result.entropy is not None:
                 console.print(f"[bold]Entropy:[/bold] {result.entropy:.2f} bits/byte")
+                
+                # Show crypto analysis if available
+                if result.crypto_analysis:
+                    crypto = result.crypto_analysis
+                    entropy_desc = crypto.get('entropy_interpretation', '')
+                    console.print(f"  [dim]({entropy_desc})[/dim]")
+                    
+                    if crypto.get('is_likely_encrypted'):
+                        confidence = crypto.get('confidence', 0) * 100
+                        console.print(f"\n[bold yellow]🔐 Encryption Detected:[/bold yellow] [yellow]{confidence:.0f}% confidence[/yellow]")
+                        
+                        indicators = crypto.get('encryption_indicators', [])
+                        if indicators:
+                            for indicator in indicators:
+                                console.print(f"  • {indicator}")
+                        
+                        cipher_hints = crypto.get('cipher_hints', [])
+                        if cipher_hints:
+                            console.print(f"\n[bold]Possible Cipher Types:[/bold]")
+                            for hint in cipher_hints:
+                                console.print(f"  • {hint}")
+                        
+                        block_info = crypto.get('block_alignment')
+                        if block_info and all_evidence:
+                            console.print(f"\n[dim]Block Analysis:[/dim]")
+                            if block_info.get('aes_aligned'):
+                                console.print(f"  [dim]• AES blocks: {block_info.get('aes_block_count')}[/dim]")
+                            if block_info.get('pkcs7_padding_possible'):
+                                console.print(f"  [dim]• PKCS#7 padding possible[/dim]")
+                    elif crypto.get('encryption_indicators'):
+                        # Show indicators even if not highly confident
+                        console.print(f"  [dim]Crypto indicators: {', '.join(crypto.get('encryption_indicators', []))}[/dim]")
+                        
             console.print(f"[bold]SHA256:[/bold] {result.checksum_sha256}")
             
             # Evidence

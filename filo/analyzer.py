@@ -11,6 +11,7 @@ from filo.embedded import EmbeddedDetector
 from filo.fingerprint import ToolFingerprinter
 from filo.polyglot import PolyglotDetector
 from filo.architecture import ArchitectureDetector
+from filo.crypto import CryptoDetector
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +23,11 @@ except ImportError:
 
 
 class SignatureAnalyzer:
-    def __init__(self, database: FormatDatabase) -> None:
-        self.database = database
-        self._signature_cache = {}
     """Signature-based file format detection."""
     
     def __init__(self, database: FormatDatabase) -> None:
         self.database = database
+        self._signature_cache = {}
     
     def analyze(self, data: bytes, max_bytes: int = 8192) -> list[DetectionResult]:
         """
@@ -779,6 +778,18 @@ class Analyzer:
             except Exception as e:
                 logger.debug(f"Architecture detection failed: {e}")
         
+        # Perform cryptographic analysis
+        crypto_analysis = None
+        try:
+            crypto_result = CryptoDetector.analyze(data, entropy)
+            if crypto_result.is_likely_encrypted or crypto_result.encryption_indicators:
+                crypto_analysis = crypto_result.model_dump()
+                logger.info(f"Crypto analysis: {crypto_result.entropy_interpretation}")
+                if crypto_result.is_likely_encrypted:
+                    logger.info(f"Likely encrypted (confidence: {crypto_result.confidence:.0%})")
+        except Exception as e:
+            logger.debug(f"Crypto analysis failed: {e}")
+        
         return AnalysisResult(
             primary_format=primary_format,
             confidence=confidence,
@@ -789,6 +800,7 @@ class Analyzer:
             fingerprints=fingerprints,
             polyglots=polyglots,
             architecture=architecture,
+            crypto_analysis=crypto_analysis,
             file_size=len(data),
             entropy=entropy,
             checksum_sha256=checksum,

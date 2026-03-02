@@ -1,4 +1,4 @@
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -188,6 +188,9 @@ class AnalysisResult(BaseModel):
     )
     architecture: Optional[ArchitectureInfo] = Field(
         default=None, description="CPU architecture info for executable files"
+    )
+    crypto_analysis: Optional[Dict[str, Any]] = Field(
+        default=None, description="Cryptographic analysis results"
     )
     file_size: int
     entropy: Optional[float] = None

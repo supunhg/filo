@@ -15,8 +15,9 @@ Filo transforms unknown binary blobs into classified, repairable, and explainabl
 - 🛡️ **Contradiction Detection**: Identifies malware, polyglots, structural anomalies (malware triage)
 - 🕵️ **Embedded Detection**: Find files hidden inside files - ZIP in EXE, PNG after EOF (malware hunter candy)
 - 🔧 **Tool Fingerprinting**: Identify how/when/with what tools a file was created (forensic attribution)
-- ⚠️ **Polyglot Detection** *(NEW v0.2.5)*: Detect dual-format files (GIFAR, PNG+ZIP, PDF+JS) with risk assessment
-- 🖥️ **CPU Architecture Detection** *(NEW v0.2.8)*: Automatic detection of CPU architecture for executables (90+ architectures: x86, ARM, RISC-V, Xtensa, MIPS, etc.)
+- 🔐 **Crypto Detection** *(NEW v0.3.0)*: Detect encrypted data, identify cipher types (AES-ECB, OpenSSL, PGP), block alignment analysis, entropy interpretation - perfect for CTF challenges
+- ⚠️ **Polyglot Detection** *(v0.2.5)*: Detect dual-format files (GIFAR, PNG+ZIP, PDF+JS) with risk assessment
+- 🖥️ **CPU Architecture Detection** *(v0.2.8)*: Automatic detection of CPU architecture for executables (90+ architectures: x86, ARM, RISC-V, Xtensa, MIPS, etc.)
 - 🎨 **zsteg-Compatible Steganography** *(v0.2.7)*: 60+ bit plane LSB/MSB extraction (PNG/BMP), auto base64 decoding, file type detection, CTF-optimized
 - 🌐 **PCAP Analysis** *(v0.2.6)*: Network capture file analysis with protocol detection, string extraction, base64 decoding, flag hunting
 - 🚀 **Batch Processing**: Parallel directory analysis with configurable workers
@@ -36,7 +37,7 @@ cd Filo
 ./build-deb.sh
 
 # Install
-sudo dpkg -i filo-forensics_0.2.8_all.deb
+sudo dpkg -i filo-forensics_0.3.0_all.deb
 ```
 
 **Option 2: From Source**
@@ -53,6 +54,10 @@ filo analyze suspicious.bin
 
 # Identify CPU architecture (ELF/PE/Mach-O executables)
 filo analyze binary  # Shows: x86-64, ARM64, Xtensa, etc.
+
+# Detect encrypted data (CTF-optimized)
+filo analyze cipher.bin  # Shows entropy, block alignment, cipher hints
+# Example output: "Medium entropy - AES-aligned (3 blocks) - Possible AES-ECB"
 
 # Detect steganography (zsteg-compatible with auto base64 decoding)
 filo stego challenge.png  # CTF flag hunting
@@ -347,7 +352,59 @@ filo pcap dump.pcap
 ## Previous Releases
 
 <details>
-<summary><strong>v0.2.8 - CPU Architecture Detection (Latest)</strong></summary>
+<summary><strong>v0.3.0 - Crypto Detection (Latest)</strong></summary>
+
+🔐 **Major Enhancement: Cryptographic Analysis & Encryption Detection**
+
+Filo now automatically detects encrypted data, identifies cipher types, and provides forensic-grade crypto analysis for CTF challenges and malware investigation:
+
+```bash
+filo analyze cipher.bin
+
+# Output:
+# Entropy: 5.49 bits/byte
+#   (Medium - compressed data, weak encryption, or obfuscation)
+#   Crypto indicators: File size is AES-aligned (3 blocks)
+# 
+# 🔐 Encryption Detected: 95% confidence
+#   • OpenSSL command-line encryption format
+#   • File size is AES-aligned (3 blocks)
+# 
+# Possible Cipher Types:
+#   • AES (block size: 16 bytes)
+#   • OpenSSL enc (likely AES-256-CBC)
+```
+
+**Key Features:**
+- ✅ **Entropy Interpretation**: Human-readable Shannon entropy explanation (very low → very high)
+- ✅ **Block Cipher Analysis**: Detects AES/DES/Blowfish alignment, PKCS#7 padding, block counts
+- ✅ **ECB Mode Detection**: Identifies insecure ECB mode by finding repeating blocks (security vulnerability indicator)
+- ✅ **Format Recognition**: OpenSSL enc (`Salted__`), PGP/GPG encrypted files, binary crypto formats
+- ✅ **CTF-Optimized**: Perfect for identifying encrypted CTF challenges with entropy + alignment hints
+- ✅ **JSON Export**: Full crypto analysis in JSON output for automated workflows
+- ✅ **Comprehensive Testing**: 26 tests covering all crypto detection scenarios
+
+**Detectable Patterns:**
+- **High Entropy**: Strong encryption or cryptographically random data (>7.9 bits/byte)
+- **Block Alignment**: AES (16-byte), DES/Blowfish (8-byte) block detection
+- **ECB Mode**: Security vulnerability detection via repeating ciphertext blocks
+- **Padding**: PKCS#7 padding detection for block ciphers
+- **Formats**: OpenSSL, PGP/GPG, generic encrypted data
+
+**Real-World Use Case:**
+Perfect for CTF challenges like "Old Habits" where you need to identify:
+- Encryption algorithm (e.g., AES-ECB)
+- Block size and alignment
+- Whether to try brute-force or look for cipher hints
+
+**Documentation:** See [docs/CRYPTO_DETECTION.md](docs/CRYPTO_DETECTION.md) for detailed usage and examples.
+
+**Release Date**: February 13, 2026
+
+</details>
+
+<details>
+<summary><strong>v0.2.8 - CPU Architecture Detection</strong></summary>
 
 🖥️ **Major Enhancement: CPU Architecture Detection**
 

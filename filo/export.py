@@ -41,6 +41,7 @@ class JSONExporter:
             ],
             "evidence_chain": result.evidence_chain,
             "entropy": result.entropy,
+            "crypto_analysis": result.crypto_analysis,
             "checksum": result.checksum_sha256
         }
         
