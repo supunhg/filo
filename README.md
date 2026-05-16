@@ -1,5 +1,4 @@
 # Filo - Forensic Intelligence & Learning Operator
-
 [![CI](https://github.com/supunhg/Filo/actions/workflows/ci.yml/badge.svg)](https://github.com/supunhg/Filo/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/filo-forensics?color=blue)](https://pypi.org/project/filo-forensics/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/filo-forensics?color=blue)](https://pypi.org/project/filo-forensics/)
