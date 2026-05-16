@@ -2,8 +2,6 @@
 
 import time
 
-import pytest
-
 from filo.profiler import Profiler, profile_session, profile_analysis
 
 

@@ -1,4 +1,3 @@
-import pytest
 from filo.cli import _extract_strings, _string_entropy, _detect_encoding
 
 

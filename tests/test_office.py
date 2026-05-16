@@ -1,6 +1,5 @@
-import pytest
 import struct
-from filo.office import analyze_office_file, OfficeAnalysisResult, OLE2_MAGIC, SUSPICIOUS_KEYWORDS, AUTO_EXEC_PATTERNS
+from filo.office import analyze_office_file, OLE2_MAGIC, SUSPICIOUS_KEYWORDS, AUTO_EXEC_PATTERNS
 
 
 def make_ole2_header(sector_shift: int = 9) -> bytes:
