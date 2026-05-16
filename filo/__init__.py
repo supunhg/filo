@@ -7,7 +7,13 @@ from filo.batch import BatchProcessor, BatchConfig, analyze_directory
 from filo.export import JSONExporter, SARIFExporter, export_to_file
 from filo.container import ContainerDetector, analyze_archive
 from filo.profiler import Profiler, profile_session
-from filo.stego import detect_steganography, PNGStegoDetector, BMPStegoDetector, PDFMetadataDetector, TrailingDataDetector
+from filo.stego import (
+    detect_steganography,
+    PNGStegoDetector,
+    BMPStegoDetector,
+    PDFMetadataDetector,
+    TrailingDataDetector,
+)
 from filo.crypto import CryptoDetector, CryptoAnalysis
 from filo.yarascanner import YARAScanner, YARAScanResult, YARAMatch
 from filo.office import analyze_office_file, OfficeAnalysisResult
@@ -15,12 +21,12 @@ from filo.office import analyze_office_file, OfficeAnalysisResult
 __version__ = "0.3.0"
 __author__ = "Supun Hewagamage"
 __all__ = [
-    "Analyzer", 
-    "RepairEngine", 
-    "FormatDatabase", 
-    "MLDetector", 
-    "CarverEngine", 
-    "CarvedFile", 
+    "Analyzer",
+    "RepairEngine",
+    "FormatDatabase",
+    "MLDetector",
+    "CarverEngine",
+    "CarvedFile",
     "StreamCarver",
     "BatchProcessor",
     "BatchConfig",
@@ -37,6 +43,8 @@ __all__ = [
     "BMPStegoDetector",
     "PDFMetadataDetector",
     "TrailingDataDetector",
+    "CryptoDetector",
+    "CryptoAnalysis",
     "YARAScanner",
     "YARAScanResult",
     "YARAMatch",

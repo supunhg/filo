@@ -95,16 +95,16 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         return []
 
     # Parse OLE2 header
-    minor_version = struct.unpack_from("<H", data, 24)[0]
-    major_version = struct.unpack_from("<H", data, 26)[0]
+    struct.unpack_from("<H", data, 24)[0]
+    struct.unpack_from("<H", data, 26)[0]
     sector_shift = struct.unpack_from("<H", data, 30)[0]
     mini_sector_shift = struct.unpack_from("<H", data, 32)[0]
-    num_dir_sectors = struct.unpack_from("<I", data, 40)[0]
-    num_fat_sectors = struct.unpack_from("<I", data, 44)[0]
+    struct.unpack_from("<I", data, 40)[0]
+    struct.unpack_from("<I", data, 44)[0]
     first_dir_sector = struct.unpack_from("<I", data, 48)[0]
 
     sector_size = 1 << sector_shift
-    mini_sector_size = 1 << mini_sector_shift
+    1 << mini_sector_shift
 
     # Read DIFAT (Double Indirect FAT)
     # For simplicity, read first 109 FAT sectors from header
@@ -120,7 +120,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         fat_sectors.append(sec_id)
 
     # Read all FAT entries
-    fat = []
+    fat: list[int] = []
     for sec_id in fat_sectors:
         offset = sec_id * sector_size
         if offset + sector_size > len(data):
@@ -129,7 +129,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         fat.extend(entries)
 
     # Read directory entries (128 bytes each)
-    entries = []
+    dir_entries: list[tuple[str, int, int]] = []
     current_sec = first_dir_sector
     while current_sec != 0xFFFFFFFF and current_sec != 0xFFFFFFFE:
         sec_offset = current_sec * sector_size
@@ -142,27 +142,27 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
             name_buf = data[dir_offset : dir_offset + 64]
             name_len = struct.unpack_from("<H", data, dir_offset + 64)[0]
             obj_type = data[dir_offset + 66]
-            color = data[dir_offset + 67]
-            left_sibling = struct.unpack_from("<I", data, dir_offset + 68)[0]
-            right_sibling = struct.unpack_from("<I", data, dir_offset + 72)[0]
-            child = struct.unpack_from("<I", data, dir_offset + 76)[0]
-            clsid = data[dir_offset + 80 : dir_offset + 96]
-            state_bits = struct.unpack_from("<I", data, dir_offset + 96)[0]
-            creation = struct.unpack_from("<Q", data, dir_offset + 100)[0]
-            modified = struct.unpack_from("<Q", data, dir_offset + 108)[0]
+            data[dir_offset + 67]
+            struct.unpack_from("<I", data, dir_offset + 68)[0]
+            struct.unpack_from("<I", data, dir_offset + 72)[0]
+            struct.unpack_from("<I", data, dir_offset + 76)[0]
+            data[dir_offset + 80 : dir_offset + 96]
+            struct.unpack_from("<I", data, dir_offset + 96)[0]
+            struct.unpack_from("<Q", data, dir_offset + 100)[0]
+            struct.unpack_from("<Q", data, dir_offset + 108)[0]
             start_sector = struct.unpack_from("<I", data, dir_offset + 116)[0]
             stream_size = struct.unpack_from("<Q", data, dir_offset + 120)[0]
 
             if name_len > 0:
                 try:
                     name = name_buf[: name_len - 2].decode("utf-16-le", errors="replace")
-                except:
+                except Exception:
                     name = ""
             else:
                 name = ""
 
             if name and obj_type in (1, 2, 5):
-                entries.append((name, start_sector, stream_size))
+                dir_entries.append((name, start_sector, stream_size))
 
         # Move to next directory sector via FAT
         fat_idx = current_sec
@@ -171,10 +171,12 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         else:
             break
 
-    return entries
+    return dir_entries
 
 
-def _extract_ole_stream(data: bytes, start_sector: int, stream_size: int, fat: list[int], sector_size: int) -> bytes:
+def _extract_ole_stream(
+    data: bytes, start_sector: int, stream_size: int, fat: list[int], sector_size: int
+) -> bytes:
     if stream_size == 0:
         return b""
     result = bytearray()
@@ -198,7 +200,9 @@ def _extract_ole_stream(data: bytes, start_sector: int, stream_size: int, fat: l
     return bytes(result)
 
 
-def _detect_vba_in_entries(entries: list[tuple[str, int, int]], data: bytes, fat: list[int], sector_size: int) -> list[MacroStream]:
+def _detect_vba_in_entries(
+    entries: list[tuple[str, int, int]], data: bytes, fat: list[int], sector_size: int
+) -> list[MacroStream]:
     vba_streams = []
     for name, start, size in entries:
         if "VBA" in name or name.endswith("Module"):
@@ -235,8 +239,8 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
     result.is_ole2 = True
 
     # Parse basic OLE2 structure
-    minor_version = struct.unpack_from("<H", data, 24)[0]
-    major_version = struct.unpack_from("<H", data, 26)[0]
+    struct.unpack_from("<H", data, 24)[0]
+    struct.unpack_from("<H", data, 26)[0]
     sector_shift = struct.unpack_from("<H", data, 30)[0]
     sector_size = 1 << sector_shift
 
@@ -263,13 +267,9 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
         result.app_name = "OLE2 Storage"
 
     # Check for VBA project streams
-    has_vba = any(
-        "VBA" in n or n.endswith(("Module", "Class1"))
-        for n in vba_names
-    )
+    has_vba = any("VBA" in n or n.endswith(("Module", "Class1")) for n in vba_names)
     project_stream = any(
-        n in vba_names
-        for n in ["_VBA_PROJECT", "VBA/", "VBA/ThisDocument", "VBA/Module1"]
+        n in vba_names for n in ["_VBA_PROJECT", "VBA/", "VBA/ThisDocument", "VBA/Module1"]
     )
 
     result.has_macros = has_vba or project_stream
@@ -277,7 +277,8 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
     if result.has_macros:
         # Count macro modules
         macro_modules = [
-            n for n in vba_names
+            n
+            for n in vba_names
             if n.startswith("VBA/Module") or n.startswith("Module") or n == "ThisDocument"
         ]
         result.macro_count = len(macro_modules)
@@ -295,7 +296,7 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
                         result.auto_exec_macros = _scan_for_auto_exec(source)
                         result.suspicious_keywords = _scan_for_keywords(source)
                         result.keyword_count = len(result.suspicious_keywords)
-                    except:
+                    except Exception:
                         pass
 
         # Scan additional module streams for patterns
@@ -318,7 +319,7 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
                             if k not in result.suspicious_keywords:
                                 result.suspicious_keywords.append(k)
                                 result.keyword_count += 1
-                    except:
+                    except Exception:
                         pass
 
     return result
@@ -329,7 +330,7 @@ def _build_fat(data: bytes, sector_size: int) -> list[int]:
     if len(data) < 512:
         return []
     difat = list(struct.unpack_from("<109I", data, 76))
-    fat = []
+    fat: list[int] = []
     for sec_id in difat:
         if sec_id == 0xFFFFFFFF or sec_id == 0:
             continue

@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system ".[dev]"
+          uv pip install --system ".[dev,yara]"
 
       - name: Lint with ruff
         run: ruff check --output-format=github .
