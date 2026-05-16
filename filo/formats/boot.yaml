@@ -1,0 +1,22 @@
+format: mbr
+version: "1.0"
+mime:
+  - application/octet-stream
+category: disk
+extensions:
+  - mbr
+  - img
+signatures:
+  - offset: 0
+    hex: "5580"
+    description: BIOS boot sector with normal signature
+    weight: 0.2
+  - offset: 510
+    hex: "55AA"
+    description: Master Boot Record signature (0x55AA at offset 510)
+    weight: 0.8
+description: >
+  Master Boot Record (MBR) partition table. First 512 bytes of a
+  partitioned disk containing boot code and partition table entries.
+references:
+  - https://en.wikipedia.org/wiki/Master_boot_record

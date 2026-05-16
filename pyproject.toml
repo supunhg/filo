@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "filo-forensics"
-version = "0.2.8"
+version = "0.3.0"
 description = "Forensic Intelligence & Ligation Orchestrator - Battle-tested file forensics platform"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,6 +32,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+yara = ["yara-python>=4.0.0"]
+all = ["filo-forensics[yara]"]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
@@ -59,14 +61,14 @@ line-length = 100
 target-version = ["py310"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

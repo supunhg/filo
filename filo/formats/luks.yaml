@@ -1,0 +1,17 @@
+format: luks
+version: "1.x"
+mime:
+  - application/octet-stream
+category: encrypted
+extensions:
+  - luks
+signatures:
+  - offset: 0
+    hex: 4C554B53BAE0
+    description: LUKS encrypted volume header ("LUKS" + magic bytes)
+    weight: 0.95
+description: >
+  LUKS (Linux Unified Key Setup) encrypted disk/partition format.
+  Standard for Linux full-disk encryption using dm-crypt/cryptsetup.
+references:
+  - https://gitlab.com/cryptsetup/cryptsetup/

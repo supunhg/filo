@@ -5,12 +5,25 @@ from typing import Optional, Union
 import mmap
 
 from filo.formats import FormatDatabase
-from filo.models import AnalysisResult, DetectionResult, ConfidenceContribution, Fingerprint, ArchitectureInfo
+from filo.models import AnalysisResult, DetectionResult, ConfidenceContribution, Fingerprint, ArchitectureInfo, YARAMatchInfo, OfficeMacroInfo
 from filo.contradictions import ContradictionDetector
 from filo.embedded import EmbeddedDetector
 from filo.fingerprint import ToolFingerprinter
 from filo.polyglot import PolyglotDetector
 from filo.architecture import ArchitectureDetector
+from filo.crypto import CryptoDetector
+
+try:
+    from filo.yarascanner import YARAScanner
+    YARA_AVAILABLE = True
+except ImportError:
+    YARA_AVAILABLE = False
+
+try:
+    from filo.office import analyze_office_file, OfficeAnalysisResult
+    OFFICE_AVAILABLE = True
+except ImportError:
+    OFFICE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +35,11 @@ except ImportError:
 
 
 class SignatureAnalyzer:
-    def __init__(self, database: FormatDatabase) -> None:
-        self.database = database
-        self._signature_cache = {}
     """Signature-based file format detection."""
     
     def __init__(self, database: FormatDatabase) -> None:
         self.database = database
+        self._signature_cache = {}
     
     def analyze(self, data: bytes, max_bytes: int = 8192) -> list[DetectionResult]:
         """
@@ -528,6 +539,44 @@ class StatisticalAnalyzer:
                 entropy -= probability * math.log2(probability)
         
         return entropy
+    
+    @staticmethod
+    def chunk_entropy(data: bytes, chunk_size: int = 256) -> list[float]:
+        if not data:
+            return []
+        entropies = []
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i:i + chunk_size]
+            entropies.append(StatisticalAnalyzer.calculate_entropy(chunk, sample_size=chunk_size))
+        return entropies
+    
+    @staticmethod
+    def format_entropy_bar(entropies: list[float], width: int = 60) -> str:
+        if not entropies:
+            return ""
+        blocks = []
+        max_entropy = 8.0
+        for e in entropies:
+            ratio = min(1.0, e / max_entropy)
+            if ratio < 0.3:
+                color = "green"
+            elif ratio < 0.6:
+                color = "yellow"
+            elif ratio < 0.8:
+                color = "orange3"
+            else:
+                color = "red"
+            bar_len = max(1, int(ratio * 4))
+            bar_char = "█" * bar_len
+            blocks.append(f"[{color}]{bar_char}[/{color}]")
+        if not blocks:
+            return ""
+        result = []
+        per_segment = max(1, len(blocks) // width)
+        for i in range(0, len(blocks), per_segment):
+            segment = blocks[i:i + per_segment]
+            result.append("".join(segment))
+        return "".join(result[:width])
 
 
 class Analyzer:
@@ -537,7 +586,8 @@ class Analyzer:
         use_ml: bool = True,
         detect_embedded: bool = True,
         fingerprint: bool = True,
-        detect_polyglots: bool = True
+        detect_polyglots: bool = True,
+        yara_rules: Optional[Union[str, list[str]]] = None,
     ) -> None:
         self.database = database or FormatDatabase()
         self.signature_analyzer = SignatureAnalyzer(self.database)
@@ -555,6 +605,20 @@ class Analyzer:
                 logger.info("ML detector enabled")
             except Exception as e:
                 logger.warning(f"ML detector failed to initialize: {e}")
+        
+        # Initialize YARA scanner
+        self.yara_scanner: Optional['YARAScanner'] = None
+        if YARA_AVAILABLE:
+            self.yara_scanner = YARAScanner()
+            if yara_rules:
+                if isinstance(yara_rules, str):
+                    yara_rules = [yara_rules]
+                rule_paths = [Path(r) for r in yara_rules]
+                try:
+                    self.yara_scanner.load_rule_files(rule_paths)
+                    logger.info(f"YARA scanner loaded {len(rule_paths)} rule file(s)")
+                except Exception as e:
+                    logger.warning(f"YARA rule loading failed: {e}")
         
         logger.info(f"Analyzer initialized with {self.database.count()} formats")
     
@@ -579,6 +643,19 @@ class Analyzer:
                 except Exception as e:
                     logger.debug(f"Contradiction detection failed: {e}")
                 
+                # Run YARA scanning in early return too
+                yara_matches_list = []
+                if self.yara_scanner and self.yara_scanner.available:
+                    try:
+                        yara_result = self.yara_scanner.scan_data(data)
+                        if yara_result.matches:
+                            yara_matches_list = [
+                                YARAMatchInfo(rule=m.rule, namespace=m.namespace, tags=m.tags, meta=m.meta, matched_strings=m.strings)
+                                for m in yara_result.matches
+                            ]
+                    except Exception:
+                        pass
+                
                 return AnalysisResult(
                     primary_format=sig_results[0].format,
                     confidence=sig_results[0].confidence,
@@ -591,6 +668,7 @@ class Analyzer:
                         "weight": 1.0,
                     }],
                     contradictions=contradictions,
+                    yara_matches=yara_matches_list,
                     file_size=len(data),
                     entropy=entropy,
                     checksum_sha256=checksum,
@@ -779,6 +857,60 @@ class Analyzer:
             except Exception as e:
                 logger.debug(f"Architecture detection failed: {e}")
         
+        # Perform cryptographic analysis
+        crypto_analysis = None
+        try:
+            crypto_result = CryptoDetector.analyze(data, entropy)
+            if crypto_result.is_likely_encrypted or crypto_result.encryption_indicators:
+                crypto_analysis = crypto_result.model_dump()
+                logger.info(f"Crypto analysis: {crypto_result.entropy_interpretation}")
+                if crypto_result.is_likely_encrypted:
+                    logger.info(f"Likely encrypted (confidence: {crypto_result.confidence:.0%})")
+        except Exception as e:
+            logger.debug(f"Crypto analysis failed: {e}")
+        
+        # Run YARA scanning
+        yara_matches_list: list[YARAMatchInfo] = []
+        if self.yara_scanner and self.yara_scanner.available:
+            try:
+                yara_result = self.yara_scanner.scan_data(data)
+                if yara_result.matches:
+                    for m in yara_result.matches:
+                        desc = m.meta.get("description", "") if m.meta else ""
+                        yara_matches_list.append(YARAMatchInfo(
+                            rule=m.rule,
+                            namespace=m.namespace,
+                            tags=m.tags,
+                            meta=m.meta,
+                            matched_strings=m.strings,
+                            description=desc,
+                        ))
+                    logger.info(f"YARA: {len(yara_matches_list)} rule(s) matched")
+            except Exception as e:
+                logger.debug(f"YARA scanning failed: {e}")
+        
+        # Run Office macro analysis for OLE2-based files
+        office_macros_info: Optional[OfficeMacroInfo] = None
+        clean_fmt = primary_format.replace(" (corrupted)", "")
+        if OFFICE_AVAILABLE and clean_fmt in ('ole2', 'msi', 'msg', 'doc', 'xls', 'ppt'):
+            try:
+                office_result = analyze_office_file(data)
+                if office_result and (office_result.has_macros or office_result.suspicious_keywords):
+                    office_macros_info = OfficeMacroInfo(
+                        has_macros=office_result.has_macros,
+                        macro_count=office_result.macro_count,
+                        auto_exec_macros=office_result.auto_exec_macros,
+                        suspicious_keywords=office_result.suspicious_keywords,
+                        keyword_count=office_result.keyword_count,
+                        app_name=office_result.app_name,
+                        is_encrypted=office_result.is_encrypted,
+                        is_protected=office_result.is_protected,
+                    )
+                    if office_result.has_macros:
+                        logger.info(f"Office macros detected: {office_result.macro_count} module(s)")
+            except Exception as e:
+                logger.debug(f"Office analysis failed: {e}")
+        
         return AnalysisResult(
             primary_format=primary_format,
             confidence=confidence,
@@ -789,6 +921,9 @@ class Analyzer:
             fingerprints=fingerprints,
             polyglots=polyglots,
             architecture=architecture,
+            crypto_analysis=crypto_analysis,
+            yara_matches=yara_matches_list,
+            office_macros=office_macros_info,
             file_size=len(data),
             entropy=entropy,
             checksum_sha256=checksum,

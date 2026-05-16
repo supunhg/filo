@@ -1,0 +1,15 @@
+format: msi
+version: "1.0"
+mime:
+  - application/x-msi
+category: archive
+extensions:
+  - msi
+signatures:
+  - offset: 0
+    hex: D0CF11E0A1B1A1E1
+    description: MSI installer (OLE2-based Windows Installer package)
+    weight: 0.5
+description: >
+  Microsoft Installer package. Based on OLE2 compound document format with
+  specific CLSID and directory structure containing installer database tables.

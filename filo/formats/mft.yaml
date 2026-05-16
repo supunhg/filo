@@ -1,0 +1,20 @@
+format: mft
+version: "1.0"
+mime:
+  - application/octet-stream
+category: filesystem
+extensions:
+  - mft
+signatures:
+  - offset: 0
+    hex: 46494C4530
+    description: NTFS Master File Table record ($MFT)
+    weight: 0.95
+footers:
+  - hex: FFFFFFFF
+    description: End of MFT record marker
+description: >
+  NTFS Master File Table ($MFT) record. Contains file metadata including
+  timestamps, security descriptors, and data runs for NTFS volumes.
+references:
+  - https://learn.microsoft.com/en-us/windows/win32/devnotes/master-file-table

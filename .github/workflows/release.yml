@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system ".[dev]"
+
+      - name: Lint with ruff
+        run: ruff check --output-format=github .
+
+      - name: Check formatting with black
+        run: black --check .
+
+      - name: Type check with mypy
+        run: mypy filo/
+
+      - name: Run tests
+        run: pytest --cov=filo
+
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build package
+        run: |
+          uv pip install --system build
+          python -m build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/filo-forensics/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          if [ -f "docs/CHANGELOG.md" ]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            # Extract changelog section for this version
+            awk -v tag="$TAG_NAME" '
+              $0 ~ "^## \\[" tag "\\]" { found=1; next }
+              found && /^## / { exit }
+              found { print }
+            ' docs/CHANGELOG.md > _release_notes.md
+            if [ ! -s _release_notes.md ]; then
+              echo "Release $TAG_NAME" > _release_notes.md
+            fi
+          else
+            echo "Release ${{ github.ref_name }}" > _release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: _release_notes.md
+          files: |
+            dist/*.tar.gz
+            dist/*.whl
+          generate_release_notes: false

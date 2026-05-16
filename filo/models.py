@@ -1,6 +1,28 @@
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 from datetime import datetime
 from pydantic import BaseModel, Field
+
+
+class YARAMatchInfo(BaseModel):
+    """Result from YARA rule scanning"""
+    rule: str = Field(description="YARA rule name")
+    namespace: str = Field(default="default", description="Rule namespace")
+    tags: list[str] = Field(default_factory=list, description="Rule tags")
+    meta: dict[str, str] = Field(default_factory=dict, description="Rule metadata")
+    matched_strings: list[dict] = Field(default_factory=list, description="Matched string offsets and data")
+    description: str = Field(default="", description="Description from meta if available")
+
+
+class OfficeMacroInfo(BaseModel):
+    """Information about detected Office macros"""
+    has_macros: bool = Field(default=False, description="Whether VBA macros were detected")
+    macro_count: int = Field(default=0, description="Number of VBA macro modules")
+    auto_exec_macros: list[str] = Field(default_factory=list, description="Auto-executable macro names")
+    suspicious_keywords: list[str] = Field(default_factory=list, description="Suspicious VBA keywords detected")
+    keyword_count: int = Field(default=0, description="Count of suspicious keywords")
+    app_name: Optional[str] = Field(default=None, description="Detected Office application")
+    is_encrypted: bool = Field(default=False, description="Whether document is encrypted")
+    is_protected: bool = Field(default=False, description="Whether document is write-protected")
 
 
 class PolyglotMatch(BaseModel):
@@ -188,6 +210,15 @@ class AnalysisResult(BaseModel):
     )
     architecture: Optional[ArchitectureInfo] = Field(
         default=None, description="CPU architecture info for executable files"
+    )
+    crypto_analysis: Optional[Dict[str, Any]] = Field(
+        default=None, description="Cryptographic analysis results"
+    )
+    yara_matches: list[YARAMatchInfo] = Field(
+        default_factory=list, description="YARA rule matches"
+    )
+    office_macros: Optional[OfficeMacroInfo] = Field(
+        default=None, description="Office VBA macro analysis"
     )
     file_size: int
     entropy: Optional[float] = None

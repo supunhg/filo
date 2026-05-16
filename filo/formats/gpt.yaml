@@ -1,0 +1,18 @@
+format: gpt
+version: "1.0"
+mime:
+  - application/octet-stream
+category: disk
+extensions:
+  - gpt
+  - img
+signatures:
+  - offset: 512
+    hex: "4546592050415254"
+    description: GPT header signature "EFI PART"
+    weight: 0.95
+description: >
+  GUID Partition Table (GPT) header. Found at LBA 1 (offset 512) on
+  GPT-partitioned disks. Replaces legacy MBR for UEFI systems.
+references:
+  - https://en.wikipedia.org/wiki/GUID_Partition_Table

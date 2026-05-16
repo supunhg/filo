@@ -1,0 +1,49 @@
+format: pem
+version: "1.0"
+mime:
+  - application/x-pem-file
+  - application/pkcs8
+category: certificate
+extensions:
+  - pem
+  - crt
+  - cer
+  - key
+signatures:
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E
+    description: PEM "-----BEGIN" header (generic)
+    weight: 0.4
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E2043455254494649434154452D2D2D2D2D
+    description: PEM "-----BEGIN CERTIFICATE-----"
+    weight: 0.95
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E2050524956415445204B45592D2D2D2D2D
+    description: PEM "-----BEGIN PRIVATE KEY-----"
+    weight: 0.95
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E205253412050524956415445204B45592D2D2D2D2D
+    description: PEM "-----BEGIN RSA PRIVATE KEY-----"
+    weight: 0.95
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E2045432050524956415445204B45592D2D2D2D2D
+    description: PEM "-----BEGIN EC PRIVATE KEY-----"
+    weight: 0.95
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E205055424C4943204B45592D2D2D2D2D
+    description: PEM "-----BEGIN PUBLIC KEY-----"
+    weight: 0.9
+  - offset: 0
+    hex: 2D2D2D2D2D424547494E20434552544946494341544520524551554553542D2D2D2D2D
+    description: PEM "-----BEGIN CERTIFICATE REQUEST-----"
+    weight: 0.9
+footers:
+  - hex: 2D2D2D2D2D454E44
+    description: PEM "-----END" footer
+description: >
+  PEM (Privacy-Enhanced Mail) format. Base64-encoded cryptographic
+  certificates, private keys, and certificate requests with header/footer
+  delimiters.
+references:
+  - https://datatracker.ietf.org/doc/html/rfc7468

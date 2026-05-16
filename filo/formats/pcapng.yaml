@@ -1,0 +1,22 @@
+format: pcapng
+version: "1.0"
+mime:
+  - application/vnd.tcpdump.pcap
+category: network
+extensions:
+  - pcapng
+  - pcap
+signatures:
+  - offset: 0
+    hex: 0A1D0C4504
+    description: PCAPNG Section Header Block (SHB) - little endian
+    weight: 0.95
+  - offset: 0
+    hex: 1A2B3C4D
+    description: PCAPNG Section Header Block (SHB) - big endian
+    weight: 0.85
+description: >
+  PCAP Next Generation (pcapng) capture file format. Extends the legacy
+  pcap format with named interfaces, enhanced packet blocks, and custom options.
+references:
+  - https://pcapng.github.io/pcapng/

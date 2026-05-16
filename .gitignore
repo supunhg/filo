@@ -53,6 +53,13 @@ ARCHITECTURE.md
 ROADMAP.md
 .github/copilot-instructions.md
 
+# Documentation (local only)
+docs/STRATEGIC_RECOMMENDATIONS.md
+docs/TEST_COVERAGE_ANALYSIS.md
+
+# Scripts (local only)
+scripts/bump_version.sh
+
 # Build artifacts
 *.deb
 build/

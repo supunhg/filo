@@ -5,7 +5,45 @@ All notable changes to Filo Forensics will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.8] - 2026-01-18
+## [0.3.0] - 2026-05-16
+
+### Added
+- **YARA Scanning**: New `YARAScanner` module for rule compilation and file/data scanning
+  - `--yara` flag on `filo analyze` to scan with custom rule files
+  - Full match result parsing with tags, metadata, and string offsets
+  - Optional `[yara]` extra dependency to keep core lightweight
+- **Office VBA Macro Analysis**: Lightweight OLE2 compound document parser
+  - VBA macro stream detection and extraction
+  - Auto-exec macro identification (AutoOpen, Workbook_Open, etc.)
+  - 50+ suspicious VBA keyword detection
+  - Integrated into analysis pipeline for OLE2-based formats
+- **Entropy Visualization**: `--entropy-viz` flag on `filo analyze`
+  - `chunk_entropy()` and `format_entropy_bar()` methods in `StatisticalAnalyzer`
+  - Color-coded entropy map of first 64KB in 256B chunks
+- **Strings Extraction**: New `filo strings` command
+  - ASCII and Unicode string extraction with configurable minimum length
+  - Entropy filtering, regex search, encoding detection (base64, UTF-8, UTF-16LE)
+  - JSON output, offset display, entropy-based coloring
+- **Extended File Repair**: ELF header and OLE2 compound document header reconstruction
+  - Auto-detection of 32/64-bit and endianness for ELF
+- **CI/CD Pipeline**: GitHub Actions for quality checks, PyPI publishing, and release management
+  - Ruff lint, Black format check, mypy type-checking, pytest with coverage
+  - Tested on Python 3.10, 3.11, 3.12
+  - Automated release on tag push: quality → build → PyPI → GitHub Release
+- **Docker Support**: Multi-stage build with slim python:3.12-slim base, non-root user
+- **Pre-commit Hooks**: ruff, black, mypy, trailing-whitespace, check-yaml, check-added-large-files
+- **22 New Format Specs**: OLE2, MSI, MSG, LNK, EML, MFT, EVT, EVTX, PEM, DER, PKCS12, SQLite, JKS, BSON, MessagePack, PCAPNG, LUKS, MBR, GPT, minidump, VHD, VDI (87 total)
+- **Cryptographic Analysis**: Entropy-based encryption detection, block cipher analysis, ECB mode identification
+
+### Changed
+- Analysis pipeline now integrates YARA, Office macro, and crypto analysis
+- Updated `AnalysisResult` model with `yara_matches`, `office_macros`, `crypto_analysis` fields
+- Bumped version to 0.3.0
+
+### Fixed
+- `UnboundLocalError` for `architecture` variable in analyzer
+- `SyntaxWarning` for unescaped regex in strings command docstring
+- Encoding detection false positives on binary data (added printable-ratio threshold)
 
 ### Added
 - **CPU Architecture Detection**: Automatic detection of CPU architecture for executable files

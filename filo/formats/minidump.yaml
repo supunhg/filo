@@ -1,0 +1,22 @@
+format: minidump
+version: "1.0"
+mime:
+  - application/octet-stream
+category: executable
+extensions:
+  - dmp
+  - mdmp
+signatures:
+  - offset: 0
+    hex: "5041474544550000"
+    description: Windows Minidump header
+    weight: 0.95
+  - offset: 0
+    hex: "4D444D502B93"
+    description: Windows Minidump alternative header
+    weight: 0.6
+description: >
+  Windows Minidump file format. Contains a partial memory dump of a crashing
+  process, including thread states, stack traces, and loaded module list.
+references:
+  - https://learn.microsoft.com/en-us/windows/win32/wer/minidump-files

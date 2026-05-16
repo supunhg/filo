@@ -1,0 +1,21 @@
+format: evt
+version: "1.0"
+mime:
+  - application/octet-stream
+category: log
+extensions:
+  - evt
+signatures:
+  - offset: 0
+    hex: 3046696C65
+    description: Windows Event Log (EVT) - "0File" header
+    weight: 0.7
+  - offset: 0
+    hex: 4C664C65
+    description: Windows Event Log (EVT) - "LfLe" header (little-endian)
+    weight: 0.9
+description: >
+  Legacy Windows Event Log (EVT) format used in Windows 2000/XP/2003.
+  Contains event records with source, ID, level, and message data.
+references:
+  - https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging

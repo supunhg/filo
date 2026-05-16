@@ -1,0 +1,18 @@
+format: jks
+version: "1.0"
+mime:
+  - application/x-java-keystore
+category: certificate
+extensions:
+  - jks
+  - keystore
+signatures:
+  - offset: 0
+    hex: FEFECAFE
+    description: Java KeyStore (JKS) header
+    weight: 0.95
+description: >
+  Java KeyStore (JKS) format. Stores cryptographic keys and certificates
+  for Java applications. Contains private key and trusted certificate entries.
+references:
+  - https://docs.oracle.com/javase/8/docs/technotes/guides/security/keytool.html

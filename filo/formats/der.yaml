@@ -1,0 +1,18 @@
+format: der
+version: "1.0"
+mime:
+  - application/x-x509-ca-cert
+  - application/pkcs8
+category: certificate
+extensions:
+  - der
+  - cer
+  - crt
+confidence_weight: 0.4
+signatures: []
+description: >
+  DER (Distinguished Encoding Rules) binary format for X.509 certificates,
+  CRLs, and PKCS#8 private keys. The binary variant of PEM encoding.
+  Note: DER/ASN.1 has no fixed magic bytes; detection relies on file extension.
+references:
+  - https://datatracker.ietf.org/doc/html/rfc5280

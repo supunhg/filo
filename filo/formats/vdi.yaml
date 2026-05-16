@@ -1,0 +1,21 @@
+format: vdi
+version: "1.1"
+mime:
+  - application/x-vdi
+category: disk
+extensions:
+  - vdi
+signatures:
+  - offset: 0
+    hex: "3C3C3C204F7261636C65205649527475616C426F78204469736B20496D616765203E3E3E"
+    description: Oracle VM VirtualBox VDI image header
+    weight: 0.8
+  - offset: 64
+    hex: "89ABCDEF01234567"
+    description: VDI image signature at offset 64
+    weight: 0.6
+description: >
+  Oracle VM VirtualBox Virtual Disk Image (VDI) format. Native disk image
+  format for VirtualBox hypervisor.
+references:
+  - https://www.virtualbox.org/manual/ch05.html

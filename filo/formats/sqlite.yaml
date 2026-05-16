@@ -1,0 +1,19 @@
+format: sqlite
+version: "3.x"
+mime:
+  - application/vnd.sqlite3
+category: database
+extensions:
+  - sqlite
+  - sqlite3
+  - db
+signatures:
+  - offset: 0
+    hex: 53514C69746520666F726D6174203300
+    description: SQLite 3.x database header
+    weight: 1.0
+description: >
+  SQLite database file. Self-contained, serverless SQL database engine format.
+  Used by Chrome/Firefox browsers, iOS/Android apps, and many applications.
+references:
+  - https://www.sqlite.org/fileformat.html
