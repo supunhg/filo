@@ -58,22 +58,25 @@ class TestEmbeddedDetector:
     def test_pe_executable_embedded(self, detector):
         """Test detection of PE executable embedded in file."""
         # Padding + PE executable signature
-        prefix = b"\x00" * 256
-        
+        prefix = b"\x00" * 512
+
         # Minimal PE file structure
-        mz_header = b"MZ" + b"\x00" * 58  # DOS header
+        mz_header = b"MZ" + b"\x00" * 58
         mz_header += b"\x80\x00\x00\x00"  # PE offset at 0x80
         pe_padding = b"\x00" * (0x80 - len(mz_header))
         pe_sig = b"PE\x00\x00"
-        
-        data = prefix + mz_header + pe_padding + pe_sig + b"\x00" * 100
-        
+        coff_header = b"\x00" * 20
+        optional_header = b"\x00" * 56 + b"\x00\x08\x00\x00" + b"\x00" * 20
+
+        data = prefix + mz_header + pe_padding + pe_sig + coff_header + optional_header
+        data += b"\x00" * 2000
+
         embedded = detector.detect_embedded(data, skip_primary=True)
-        
+
         # Should find PE executable
         pe_obj = next((obj for obj in embedded if obj.format == "pe"), None)
         assert pe_obj is not None
-        assert pe_obj.offset == 256
+        assert pe_obj.offset == 512
         assert pe_obj.confidence >= 0.70
     
     def test_elf_executable_embedded(self, detector):
@@ -111,7 +114,7 @@ class TestEmbeddedDetector:
         
         # Add JPEG at offset 188 (158 + 10 + 20)
         data += b"\x00" * 100
-        data += bytes.fromhex("FFD8FFE0") + b"\x00" * 50
+        data += bytes.fromhex("FFD8FFE0") + b"\x00" * 200
         
         embedded = detector.detect_embedded(data, skip_primary=True)
         
@@ -299,18 +302,23 @@ class TestEmbeddedDetector:
     def test_polyglot_detection(self, detector):
         """Test detection of polyglot files (valid as multiple formats)."""
         # Create file that's valid ZIP but also has PE signature
-        # This is simplified - real polyglots are more complex
-        
+
         # Start with ZIP
         data = b"PK\x03\x04\x14\x00\x00\x00\x08\x00" + b"\x00" * 100
-        
-        # Embed PE signature
+
+        # Embed PE executable
         data += b"\x00" * 156
         data += b"MZ" + b"\x00" * 58
         data += b"\x80\x00\x00\x00"  # PE offset
-        
+        data += b"\x00" * (0x80 - 64)  # padding to PE signature
+        data += b"PE\x00\x00"          # PE signature
+        data += b"\x00" * 20           # COFF header
+        data += b"\x00" * 56
+        data += b"\x00\x08\x00\x00"   # SizeOfImage = 2048
+        data += b"\x00" * 500
+
         embedded = detector.detect_embedded(data, skip_primary=True, min_confidence=0.60)
-        
+
         # Should find at least the embedded PE or DLL (same MZ signature)
         formats_found = {obj.format for obj in embedded}
         assert "pe" in formats_found or "zip" in formats_found or "dll" in formats_found
