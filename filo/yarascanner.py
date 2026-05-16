@@ -35,7 +35,7 @@ class YARAScanner:
 
     def _init_yara(self) -> None:
         try:
-            import yara
+            import yara  # type: ignore
 
             self._yara = yara
         except ImportError:
