@@ -174,7 +174,9 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
     return entries
 
 
-def _extract_ole_stream(data: bytes, start_sector: int, stream_size: int, fat: list[int], sector_size: int) -> bytes:
+def _extract_ole_stream(
+    data: bytes, start_sector: int, stream_size: int, fat: list[int], sector_size: int
+) -> bytes:
     if stream_size == 0:
         return b""
     result = bytearray()
@@ -198,7 +200,9 @@ def _extract_ole_stream(data: bytes, start_sector: int, stream_size: int, fat: l
     return bytes(result)
 
 
-def _detect_vba_in_entries(entries: list[tuple[str, int, int]], data: bytes, fat: list[int], sector_size: int) -> list[MacroStream]:
+def _detect_vba_in_entries(
+    entries: list[tuple[str, int, int]], data: bytes, fat: list[int], sector_size: int
+) -> list[MacroStream]:
     vba_streams = []
     for name, start, size in entries:
         if "VBA" in name or name.endswith("Module"):
@@ -263,13 +267,9 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
         result.app_name = "OLE2 Storage"
 
     # Check for VBA project streams
-    has_vba = any(
-        "VBA" in n or n.endswith(("Module", "Class1"))
-        for n in vba_names
-    )
+    has_vba = any("VBA" in n or n.endswith(("Module", "Class1")) for n in vba_names)
     project_stream = any(
-        n in vba_names
-        for n in ["_VBA_PROJECT", "VBA/", "VBA/ThisDocument", "VBA/Module1"]
+        n in vba_names for n in ["_VBA_PROJECT", "VBA/", "VBA/ThisDocument", "VBA/Module1"]
     )
 
     result.has_macros = has_vba or project_stream
@@ -277,7 +277,8 @@ def analyze_office_file(data: bytes) -> OfficeAnalysisResult:
     if result.has_macros:
         # Count macro modules
         macro_modules = [
-            n for n in vba_names
+            n
+            for n in vba_names
             if n.startswith("VBA/Module") or n.startswith("Module") or n == "ThisDocument"
         ]
         result.macro_count = len(macro_modules)

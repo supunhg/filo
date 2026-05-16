@@ -12,26 +12,26 @@ def example_1_basic_polyglot_detection():
     print("=" * 70)
     print("Example 1: Basic Polyglot Detection")
     print("=" * 70)
-    
+
     # Create a simple polyglot detector
     detector = PolyglotDetector()
-    
+
     # Read a suspicious file
     demo_file = Path("demo/gifar_malware.gif")
     if not demo_file.exists():
         print("⚠ Demo file not found. Run: python demo/create_polyglot_files.py")
         return
-    
-    with open(demo_file, 'rb') as f:
+
+    with open(demo_file, "rb") as f:
         data = f.read()
-    
+
     # Detect polyglots
-    polyglots = detector.detect_polyglots(data, primary_format='gif')
-    
+    polyglots = detector.detect_polyglots(data, primary_format="gif")
+
     print(f"\n📁 File: {demo_file}")
     print(f"📊 Size: {len(data)} bytes")
     print(f"\n⚠ Polyglots detected: {len(polyglots)}")
-    
+
     for i, p in enumerate(polyglots, 1):
         print(f"\n{i}. {' + '.join(p.formats).upper()}")
         print(f"   Pattern: {p.pattern}")
@@ -46,25 +46,25 @@ def example_2_analyzer_integration():
     print("\n" + "=" * 70)
     print("Example 2: Analyzer Integration")
     print("=" * 70)
-    
+
     demo_file = Path("demo/malicious_document.pdf")
     if not demo_file.exists():
         print("⚠ Demo file not found. Run: python demo/create_polyglot_files.py")
         return
-    
+
     # Create analyzer with polyglot detection enabled (default)
     analyzer = Analyzer(detect_polyglots=True)
-    
+
     # Analyze file - read data first
-    with open(demo_file, 'rb') as f:
+    with open(demo_file, "rb") as f:
         data = f.read()
-    
+
     result = analyzer.analyze(data, file_path=str(demo_file))
-    
+
     print(f"\n📁 File: {demo_file}")
     print(f"🎯 Primary Format: {result.primary_format}")
     print(f"📊 Confidence: {result.confidence:.1%}")
-    
+
     if result.polyglots:
         print(f"\n⚠ Polyglots detected: {len(result.polyglots)}")
         for p in result.polyglots:
@@ -80,36 +80,36 @@ def example_3_format_validation():
     print("\n" + "=" * 70)
     print("Example 3: Individual Format Validation")
     print("=" * 70)
-    
+
     demo_file = Path("demo/polyglot_advanced.png")
     if not demo_file.exists():
         print("⚠ Demo file not found. Run: python demo/create_polyglot_files.py")
         return
-    
-    with open(demo_file, 'rb') as f:
+
+    with open(demo_file, "rb") as f:
         data = f.read()
-    
+
     detector = PolyglotDetector()
-    
+
     print(f"\n📁 File: {demo_file}")
     print(f"📊 Size: {len(data)} bytes")
     print("\n🔍 Format Validation Results:")
-    
+
     # Test multiple formats
     formats_to_test = {
-        'PNG': detector._validate_png,
-        'GIF': detector._validate_gif,
-        'JPEG': detector._validate_jpeg,
-        'ZIP': detector._validate_zip,
-        'PDF': detector._validate_pdf,
-        'PE': detector._validate_pe,
+        "PNG": detector._validate_png,
+        "GIF": detector._validate_gif,
+        "JPEG": detector._validate_jpeg,
+        "ZIP": detector._validate_zip,
+        "PDF": detector._validate_pdf,
+        "PE": detector._validate_pe,
     }
-    
+
     for format_name, validator in formats_to_test.items():
         is_valid = validator(data)
         status = "✓ VALID" if is_valid else "✗ Invalid"
         print(f"  {format_name:8} {status}")
-    
+
     # Get all valid formats
     valid_formats = detector._get_valid_formats(data)
     print(f"\n✓ File is valid as: {', '.join(valid_formats).upper()}")
@@ -120,40 +120,40 @@ def example_4_javascript_detection():
     print("\n" + "=" * 70)
     print("Example 4: JavaScript Payload Detection")
     print("=" * 70)
-    
+
     demo_file = Path("demo/malicious_document.pdf")
     if not demo_file.exists():
         print("⚠ Demo file not found. Run: python demo/create_polyglot_files.py")
         return
-    
-    with open(demo_file, 'rb') as f:
+
+    with open(demo_file, "rb") as f:
         data = f.read()
-    
+
     detector = PolyglotDetector()
-    
+
     print(f"\n📁 File: {demo_file}")
-    
+
     # Check if it's a valid PDF
     is_pdf = detector._validate_pdf(data)
     print(f"📄 Valid PDF: {is_pdf}")
-    
+
     if is_pdf:
         # Check for JavaScript payload
         has_js = detector._has_js_payload(data)
         print(f"⚠ JavaScript Detected: {has_js}")
-        
+
         if has_js:
             # Look for specific indicators
             js_indicators = [
-                b'/JavaScript',
-                b'/JS',
-                b'/AA',
-                b'/OpenAction',
-                b'eval(',
-                b'unescape(',
-                b'String.fromCharCode',
+                b"/JavaScript",
+                b"/JS",
+                b"/AA",
+                b"/OpenAction",
+                b"eval(",
+                b"unescape(",
+                b"String.fromCharCode",
             ]
-            
+
             print("\n🔍 JavaScript Indicators Found:")
             for indicator in js_indicators:
                 if indicator in data:
@@ -165,35 +165,35 @@ def example_5_security_filtering():
     print("\n" + "=" * 70)
     print("Example 5: Security Filtering")
     print("=" * 70)
-    
+
     print("\n🛡️ Security Policy: Block HIGH risk polyglots\n")
-    
+
     test_files = [
         ("demo/gifar_malware.gif", "GIFAR Attack"),
         ("demo/polyglot_advanced.png", "PNG+ZIP Steganography"),
         ("demo/malicious_document.pdf", "PDF with JavaScript"),
         ("demo/executable_archive.exe", "PE+ZIP Hybrid"),
     ]
-    
+
     analyzer = Analyzer(detect_polyglots=True)
-    
+
     for file_path, description in test_files:
         demo_file = Path(file_path)
         if not demo_file.exists():
             continue
-        
-        with open(demo_file, 'rb') as f:
+
+        with open(demo_file, "rb") as f:
             data = f.read()
-        
+
         result = analyzer.analyze(data, file_path=str(demo_file))
-        
+
         print(f"\n📁 {demo_file.name} - {description}")
-        
+
         # Check for high-risk polyglots
-        high_risk = [p for p in result.polyglots if p.risk_level == 'high']
-        medium_risk = [p for p in result.polyglots if p.risk_level == 'medium']
-        low_risk = [p for p in result.polyglots if p.risk_level == 'low']
-        
+        high_risk = [p for p in result.polyglots if p.risk_level == "high"]
+        medium_risk = [p for p in result.polyglots if p.risk_level == "medium"]
+        low_risk = [p for p in result.polyglots if p.risk_level == "low"]
+
         if high_risk:
             print(f"  🚫 BLOCKED - High risk polyglot detected!")
             for p in high_risk:
@@ -213,14 +213,14 @@ def example_6_batch_analysis():
     print("\n" + "=" * 70)
     print("Example 6: Batch Polyglot Analysis")
     print("=" * 70)
-    
+
     demo_dir = Path("demo")
     if not demo_dir.exists():
         print("⚠ Demo directory not found")
         return
-    
+
     analyzer = Analyzer(detect_polyglots=True)
-    
+
     # Find all demo polyglot files
     polyglot_files = [
         "gifar_malware.gif",
@@ -229,33 +229,30 @@ def example_6_batch_analysis():
         "image_with_archive.jpg",
         "executable_archive.exe",
     ]
-    
+
     print("\n📊 Analyzing demo polyglot files...\n")
-    
+
     results = []
     for filename in polyglot_files:
         file_path = demo_dir / filename
         if not file_path.exists():
             continue
-        
-        with open(file_path, 'rb') as f:
+
+        with open(file_path, "rb") as f:
             data = f.read()
-        
+
         result = analyzer.analyze(data, file_path=str(file_path))
         results.append((filename, result))
-    
+
     # Summary statistics
     total_files = len(results)
     files_with_polyglots = sum(1 for _, r in results if r.polyglots)
-    high_risk_count = sum(
-        1 for _, r in results 
-        for p in r.polyglots if p.risk_level == 'high'
-    )
-    
+    high_risk_count = sum(1 for _, r in results for p in r.polyglots if p.risk_level == "high")
+
     print(f"📁 Total files analyzed: {total_files}")
     print(f"⚠️  Files with polyglots: {files_with_polyglots}")
     print(f"🚨 High-risk detections: {high_risk_count}")
-    
+
     print("\n📋 Detailed Results:\n")
     for filename, result in results:
         print(f"  {filename}")
@@ -274,14 +271,14 @@ def main():
     print("\n" + "=" * 70)
     print(" " * 10 + "Filo v0.2.5 - Polyglot Detection Examples")
     print("=" * 70)
-    
+
     # Check if demo files exist
     demo_dir = Path("demo")
     if not demo_dir.exists() or not (demo_dir / "gifar_malware.gif").exists():
         print("\n⚠️  Demo files not found!")
         print("Please run first: python demo/create_polyglot_files.py\n")
         return 1
-    
+
     try:
         example_1_basic_polyglot_detection()
         example_2_analyzer_integration()
@@ -289,7 +286,7 @@ def main():
         example_4_javascript_detection()
         example_5_security_filtering()
         example_6_batch_analysis()
-        
+
         print("\n" + "=" * 70)
         print("✅ All examples completed successfully!")
         print("=" * 70)
@@ -297,12 +294,13 @@ def main():
         print("  - docs/POLYGLOT_DETECTION.md")
         print("  - RELEASE_v0.2.5.md")
         print("=" * 70 + "\n")
-        
+
         return 0
-    
+
     except Exception as e:
         print(f"\n❌ Error running examples: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

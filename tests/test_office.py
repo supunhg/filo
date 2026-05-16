@@ -40,7 +40,9 @@ def make_ole2_header(sector_shift: int = 9) -> bytes:
     return bytes(header)
 
 
-def make_dir_entry(name: str, obj_type: int = 2, start_sector: int = 0xFFFFFFFF, stream_size: int = 0) -> bytes:
+def make_dir_entry(
+    name: str, obj_type: int = 2, start_sector: int = 0xFFFFFFFF, stream_size: int = 0
+) -> bytes:
     entry = bytearray(128)
     name_encoded = name.encode("utf-16-le") + b"\x00\x00"
     name_len = min(len(name_encoded), 64)

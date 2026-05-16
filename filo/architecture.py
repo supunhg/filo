@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class ArchitectureDetector:
     """Detect CPU architecture from executable file headers."""
-    
+
     # ELF e_machine values (from ELF specification)
     # Reference: https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
     ELF_MACHINES = {
@@ -110,7 +110,7 @@ class ArchitectureDetector:
         0xF7: "Berkeley Packet Filter",
         0x101: "WDC 65C816",
     }
-    
+
     # PE Machine types (from PE/COFF specification)
     # Reference: https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
     PE_MACHINES = {
@@ -149,7 +149,7 @@ class ArchitectureDetector:
         0xAA64: "ARM64 little endian (Aarch64)",
         0xC0EE: "clr pure MSIL",
     }
-    
+
     # Mach-O CPU types (from mach-o/loader.h)
     # Reference: https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/machine.h
     MACHO_CPUTYPES = {
@@ -168,119 +168,121 @@ class ArchitectureDetector:
         18: "PowerPC",
         0x01000012: "PowerPC 64",
     }
-    
+
     def __init__(self):
         """Initialize the architecture detector."""
         pass
-    
+
     def detect_elf_architecture(self, data: bytes) -> Optional[dict]:
         """
         Detect CPU architecture from ELF header.
-        
+
         Args:
             data: First 20+ bytes of ELF file
-            
+
         Returns:
             Dict with architecture info or None if not ELF
         """
         if len(data) < 20:
             return None
-            
+
         # Check ELF magic
-        if data[0:4] != b'\x7fELF':
+        if data[0:4] != b"\x7fELF":
             return None
-        
+
         # Extract ELF class (32-bit or 64-bit)
         ei_class = data[4]
         class_name = "32-bit" if ei_class == 1 else "64-bit" if ei_class == 2 else "Unknown"
-        
+
         # Extract endianness
         ei_data = data[5]
-        is_little_endian = (ei_data == 1)
-        endian_name = "Little-endian" if is_little_endian else "Big-endian" if ei_data == 2 else "Unknown"
-        
+        is_little_endian = ei_data == 1
+        endian_name = (
+            "Little-endian" if is_little_endian else "Big-endian" if ei_data == 2 else "Unknown"
+        )
+
         # Extract e_machine (at offset 0x12 for both 32/64-bit, 2 bytes)
         if is_little_endian:
-            e_machine = struct.unpack('<H', data[0x12:0x14])[0]
+            e_machine = struct.unpack("<H", data[0x12:0x14])[0]
         else:
-            e_machine = struct.unpack('>H', data[0x12:0x14])[0]
-        
+            e_machine = struct.unpack(">H", data[0x12:0x14])[0]
+
         # Get architecture name
         arch_name = self.ELF_MACHINES.get(e_machine, f"Unknown (0x{e_machine:04X})")
-        
+
         return {
             "architecture": arch_name,
             "bits": class_name,
             "endian": endian_name,
             "machine_code": e_machine,
-            "format": "ELF"
+            "format": "ELF",
         }
-    
+
     def detect_pe_architecture(self, data: bytes) -> Optional[dict]:
         """
         Detect CPU architecture from PE header.
-        
+
         Args:
             data: First 128+ bytes of PE file
-            
+
         Returns:
             Dict with architecture info or None if not PE
         """
         if len(data) < 128:
             return None
-            
+
         # Check DOS header
-        if data[0:2] != b'MZ':
+        if data[0:2] != b"MZ":
             return None
-        
+
         # Get PE header offset (at 0x3C)
-        pe_offset = struct.unpack('<I', data[0x3C:0x40])[0]
-        
+        pe_offset = struct.unpack("<I", data[0x3C:0x40])[0]
+
         if pe_offset + 6 > len(data):
             return None
-            
+
         # Check PE signature
-        if data[pe_offset:pe_offset+4] != b'PE\x00\x00':
+        if data[pe_offset : pe_offset + 4] != b"PE\x00\x00":
             return None
-        
+
         # Extract Machine type (2 bytes after PE signature)
-        machine = struct.unpack('<H', data[pe_offset+4:pe_offset+6])[0]
-        
+        machine = struct.unpack("<H", data[pe_offset + 4 : pe_offset + 6])[0]
+
         # Get architecture name
         arch_name = self.PE_MACHINES.get(machine, f"Unknown (0x{machine:04X})")
-        
+
         # Determine bits
         bits = "32-bit"
         if machine in [0x8664, 0xAA64, 0x0200, 0x5064, 0x5128]:
             bits = "64-bit"
-        
+
         return {
             "architecture": arch_name,
             "bits": bits,
             "endian": "Little-endian",  # PE is always little-endian
             "machine_code": machine,
-            "format": "PE"
+            "format": "PE",
         }
-    
+
     def detect_macho_architecture(self, data: bytes) -> Optional[dict]:
         """
         Detect CPU architecture from Mach-O header.
-        
+
         Args:
             data: First 32+ bytes of Mach-O file
-            
+
         Returns:
             Dict with architecture info or None if not Mach-O
         """
         if len(data) < 32:
             return None
-        
+
         # Check magic numbers
-        magic = struct.unpack('<I', data[0:4])[0]
-        
+        magic = struct.unpack("<I", data[0:4])[0]
+
         is_little_endian = None
         bits = None
-        
+
         if magic == 0xFEEDFACE:  # 32-bit little-endian
             is_little_endian = True
             bits = "32-bit"
@@ -295,33 +297,33 @@ class ArchitectureDetector:
             bits = "64-bit"
         else:
             return None
-        
+
         # Extract CPU type (4 bytes at offset 4)
         if is_little_endian:
-            cputype = struct.unpack('<i', data[4:8])[0]
+            cputype = struct.unpack("<i", data[4:8])[0]
         else:
-            cputype = struct.unpack('>i', data[4:8])[0]
-        
+            cputype = struct.unpack(">i", data[4:8])[0]
+
         # Get architecture name
         arch_name = self.MACHO_CPUTYPES.get(cputype, f"Unknown (0x{cputype:08X})")
-        
+
         endian_name = "Little-endian" if is_little_endian else "Big-endian"
-        
+
         return {
             "architecture": arch_name,
             "bits": bits,
             "endian": endian_name,
             "machine_code": cputype,
-            "format": "Mach-O"
+            "format": "Mach-O",
         }
-    
+
     def detect(self, data: bytes) -> Optional[dict]:
         """
         Auto-detect architecture from any executable format.
-        
+
         Args:
             data: First 128+ bytes of file
-            
+
         Returns:
             Dict with architecture info or None if not recognized
         """
@@ -329,15 +331,15 @@ class ArchitectureDetector:
         result = self.detect_elf_architecture(data)
         if result:
             return result
-        
+
         # Try PE
         result = self.detect_pe_architecture(data)
         if result:
             return result
-        
+
         # Try Mach-O
         result = self.detect_macho_architecture(data)
         if result:
             return result
-        
+
         return None

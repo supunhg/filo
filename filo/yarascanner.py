@@ -102,19 +102,23 @@ class YARAScanner:
             string_matches = []
             for s in getattr(m, "strings", []):
                 for inst in getattr(s, "instances", []):
-                    string_matches.append({
-                        "identifier": s.identifier,
-                        "offset": inst.offset,
-                        "data": inst.matched_data,
-                        "length": inst.matched_length,
-                    })
-            matches.append(YARAMatch(
-                rule=m.rule,
-                namespace=getattr(m, "namespace", "default"),
-                tags=list(getattr(m, "tags", [])),
-                meta=dict(getattr(m, "meta", {})),
-                strings=string_matches,
-            ))
+                    string_matches.append(
+                        {
+                            "identifier": s.identifier,
+                            "offset": inst.offset,
+                            "data": inst.matched_data,
+                            "length": inst.matched_length,
+                        }
+                    )
+            matches.append(
+                YARAMatch(
+                    rule=m.rule,
+                    namespace=getattr(m, "namespace", "default"),
+                    tags=list(getattr(m, "tags", [])),
+                    meta=dict(getattr(m, "meta", {})),
+                    strings=string_matches,
+                )
+            )
         return YARAScanResult(
             matches=matches,
             rule_count=len(matches),
