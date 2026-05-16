@@ -1,0 +1,17 @@
+format: evtx
+version: "1.0"
+mime:
+  - application/octet-stream
+category: log
+extensions:
+  - evtx
+signatures:
+  - offset: 0
+    hex: 456C6646696C6500
+    description: Windows Event Log (EVTX) - "ElfFile\0" header
+    weight: 0.95
+description: >
+  Windows Event Log (EVTX) format. Contains system, security, and application
+  event records in XML-based binary format introduced in Windows Vista.
+references:
+  - https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging

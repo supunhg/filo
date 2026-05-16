@@ -1,0 +1,17 @@
+format: msg
+version: "1.0"
+mime:
+  - application/vnd.ms-outlook
+category: email
+extensions:
+  - msg
+signatures:
+  - offset: 0
+    hex: D0CF11E0A1B1A1E1
+    description: Outlook MSG file (OLE2-based)
+    weight: 0.5
+description: >
+  Microsoft Outlook MSG (OLE2) format. Contains email messages, appointments,
+  contacts, and tasks in the OLE2 compound document format.
+references:
+  - https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxmsg/

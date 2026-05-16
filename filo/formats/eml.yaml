@@ -1,0 +1,33 @@
+format: eml
+version: "1.0"
+mime:
+  - message/rfc822
+category: email
+extensions:
+  - eml
+signatures:
+  - offset: 0
+    hex: "46726F6D3A20"
+    description: 'EML file starting with "From: "'
+    weight: 0.4
+  - offset: 0
+    hex: "446174653A20"
+    description: 'EML file starting with "Date: "'
+    weight: 0.3
+  - offset: 0
+    hex: "52656365697665643A20"
+    description: 'EML file starting with "Received: "'
+    weight: 0.3
+  - offset: 0
+    hex: "52657475726E2D506174683A20"
+    description: 'EML file starting with "Return-Path: "'
+    weight: 0.3
+  - offset: 0
+    hex: "4D494D452D56657273696F6E3A20"
+    description: 'EML file starting with "MIME-Version: "'
+    weight: 0.2
+description: >
+  EML email message format (RFC 822). Contains email headers (From, To, Subject,
+  Date) and body, may include MIME-encoded attachments.
+references:
+  - https://datatracker.ietf.org/doc/html/rfc822

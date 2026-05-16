@@ -9,6 +9,8 @@ from filo.container import ContainerDetector, analyze_archive
 from filo.profiler import Profiler, profile_session
 from filo.stego import detect_steganography, PNGStegoDetector, BMPStegoDetector, PDFMetadataDetector, TrailingDataDetector
 from filo.crypto import CryptoDetector, CryptoAnalysis
+from filo.yarascanner import YARAScanner, YARAScanResult, YARAMatch
+from filo.office import analyze_office_file, OfficeAnalysisResult
 
 __version__ = "0.3.0"
 __author__ = "Supun Hewagamage"
@@ -34,4 +36,10 @@ __all__ = [
     "PNGStegoDetector",
     "BMPStegoDetector",
     "PDFMetadataDetector",
+    "TrailingDataDetector",
+    "YARAScanner",
+    "YARAScanResult",
+    "YARAMatch",
+    "analyze_office_file",
+    "OfficeAnalysisResult",
 ]

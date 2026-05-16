@@ -1,0 +1,21 @@
+format: ole2
+version: "1.0"
+mime:
+  - application/vnd.ole2
+category: compound_document
+extensions:
+  - ole
+  - ole2
+signatures:
+  - offset: 0
+    hex: D0CF11E0A1B1A1E1
+    description: OLE2 Compound Document header
+    weight: 0.9
+  - offset: 512
+    hex: D0CF11E0A1B1A1E1
+    description: OLE2 Compound Document header (at sector boundary)
+    weight: 0.6
+description: >
+  OLE2 (Compound Document File Format), also called Structured Storage or
+  Compound Binary Format. Foundation for Microsoft Office documents (pre-2007),
+  MSI installers, and Outlook messages.

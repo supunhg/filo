@@ -1,0 +1,16 @@
+format: pkcs12
+version: "1.0"
+mime:
+  - application/x-pkcs12
+  - application/pkcs12
+category: certificate
+extensions:
+  - p12
+  - pfx
+confidence_weight: 0.4
+signatures: []
+description: >
+  PKCS#12 / PFX format. Archive file format for storing cryptographic objects
+  (certificates, private keys) in a single encrypted file.
+references:
+  - https://datatracker.ietf.org/doc/html/rfc7292

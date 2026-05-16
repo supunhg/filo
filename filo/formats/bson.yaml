@@ -1,0 +1,15 @@
+format: bson
+version: "1.0"
+mime:
+  - application/bson
+category: serialization
+extensions:
+  - bson
+confidence_weight: 0.3
+signatures: []
+description: >
+  BSON (Binary JSON) format. Binary-encoded serialization of JSON-like
+  documents used primarily by MongoDB for data storage and network transfer.
+  Note: BSON has no fixed magic bytes; detection relies on structural analysis.
+references:
+  - https://bsonspec.org/

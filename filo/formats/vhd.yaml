@@ -1,0 +1,17 @@
+format: vhd
+version: "1.0"
+mime:
+  - application/x-vhd
+category: disk
+extensions:
+  - vhd
+signatures:
+  - offset: 0
+    hex: 636F6E6563746978
+    description: Virtual Hard Disk (VHD) "conectix" header
+    weight: 0.95
+description: >
+  Microsoft Virtual Hard Disk (VHD) format. Disk image format used by
+  Hyper-V and Virtual PC. Supports fixed, dynamic, and differencing disks.
+references:
+  - https://learn.microsoft.com/en-us/windows/win32/vhd/vhd-image-format

@@ -1,5 +1,13 @@
 # Filo - Forensic Intelligence & Learning Operator
 
+[![CI](https://github.com/supunhg/Filo/actions/workflows/ci.yml/badge.svg)](https://github.com/supunhg/Filo/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/filo-forensics?color=blue)](https://pypi.org/project/filo-forensics/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/filo-forensics?color=blue)](https://pypi.org/project/filo-forensics/)
+[![License](https://img.shields.io/github/license/supunhg/Filo?color=blue)](LICENSE)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Docker](https://img.shields.io/docker/v/supunhg/filo?label=Docker&logo=docker)](https://github.com/supunhg/Filo/pkgs/container/filo)
+
 **Battle-tested file forensics platform for security professionals**
 
 Filo transforms unknown binary blobs into classified, repairable, and explainable artifacts with offline ML learning capabilities.

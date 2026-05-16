@@ -78,14 +78,15 @@ def main(verbose: bool) -> None:
 @click.option("-a", "--all-evidence", is_flag=True, help="Show all detection evidence")
 @click.option("-e", "--all-embedded", is_flag=True, help="Show all embedded artifacts")
 @click.option("--explain", is_flag=True, help="Show detailed confidence breakdown")
-def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evidence: bool, all_embedded: bool, explain: bool) -> None:
+@click.option("--yara", "yara_rules", type=click.Path(exists=True), multiple=True, help="YARA rule file(s) to scan against")
+def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evidence: bool, all_embedded: bool, explain: bool, yara_rules: tuple[str, ...]) -> None:
     """
     Analyze a file to detect its format.
     
     FILE_PATH: Path to file to analyze
     """
     try:
-        analyzer = Analyzer(use_ml=not no_ml)
+        analyzer = Analyzer(use_ml=not no_ml, yara_rules=list(yara_rules) if yara_rules else None)
         result = analyzer.analyze_file(file_path)
         
         if output_json:
@@ -124,6 +125,17 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                 "crypto_analysis": result.crypto_analysis,
                 "checksum": result.checksum_sha256,
                 "evidence": result.evidence_chain,
+                "yara_matches": [
+                    {
+                        "rule": m.rule,
+                        "namespace": m.namespace,
+                        "tags": m.tags,
+                        "meta": m.meta,
+                        "description": m.description,
+                    }
+                    for m in result.yara_matches
+                ],
+                "office_macros": result.office_macros.model_dump() if result.office_macros else None,
             }
             console.print_json(json.dumps(output, indent=2))
         else:
@@ -325,6 +337,41 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                 arch = result.architecture
                 console.print(f"  • [green]{arch.architecture}[/green] ({arch.bits}, {arch.endian})")
                 console.print(f"    [dim]Format: {arch.format} | Machine Code: 0x{arch.machine_code:04X}[/dim]")
+            
+            # YARA matches
+            if result.yara_matches:
+                console.print(f"\n[bold red]🐍 YARA Matches ({len(result.yara_matches)}):[/bold red]")
+                for match in result.yara_matches[:10]:
+                    tags_str = f" [{','.join(match.tags)}]" if match.tags else ""
+                    desc_str = f" — {match.description}" if match.description else ""
+                    console.print(f"  • [red]{match.rule}[/red]{tags_str}{desc_str}")
+                    if match.matched_strings:
+                        for s in match.matched_strings[:3]:
+                            offset = s.get("offset", 0)
+                            data_hex = s.get("data", b"")[:8].hex()
+                            console.print(f"    [dim]  @ 0x{offset:X}: {data_hex}[/dim]")
+                if len(result.yara_matches) > 10:
+                    console.print(f"    [dim]... and {len(result.yara_matches) - 10} more[/dim]")
+            
+            # Office macro analysis
+            if result.office_macros:
+                om = result.office_macros
+                if om.has_macros or om.suspicious_keywords:
+                    console.print(f"\n[bold yellow]📜 Office Macro Analysis:[/bold yellow]")
+                    if om.app_name:
+                        console.print(f"  Application: [cyan]{om.app_name}[/cyan]")
+                    if om.is_encrypted:
+                        console.print(f"  [red]🔒 Encrypted document[/red]")
+                    if om.is_protected:
+                        console.print(f"  [yellow]🔒 Write-protected[/yellow]")
+                    if om.has_macros:
+                        console.print(f"  Macros: [bold]{om.macro_count}[/bold] module(s)")
+                    if om.auto_exec_macros:
+                        console.print(f"  Auto-exec macros: [red]{', '.join(om.auto_exec_macros)}[/red]")
+                    if om.suspicious_keywords:
+                        console.print(f"  Suspicious keywords ({om.keyword_count}): [red]{', '.join(om.suspicious_keywords[:10])}[/red]")
+                        if len(om.suspicious_keywords) > 10:
+                            console.print(f"    [dim]... and {len(om.suspicious_keywords) - 10} more[/dim]")
             
             # File info
             console.print(f"\n[bold]File Size:[/bold] {result.file_size:,} bytes")
