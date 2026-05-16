@@ -23,6 +23,10 @@ Filo transforms unknown binary blobs into classified, repairable, and explainabl
 - 🕵️ **Embedded Detection**: Find files hidden inside files - ZIP in EXE, PNG after EOF (malware hunter candy)
 - 🔧 **Tool Fingerprinting**: Identify how/when/with what tools a file was created (forensic attribution)
 - 🔐 **Crypto Detection** *(NEW v0.3.0)*: Detect encrypted data, identify cipher types (AES-ECB, OpenSSL, PGP), block alignment analysis, entropy interpretation - perfect for CTF challenges
+- 🔍 **YARA Scanning** *(NEW v0.3.0)*: Scan files with custom YARA rules — rule compilation, match parsing, tags and metadata extraction
+- 📄 **Office Macro Analysis** *(NEW v0.3.0)*: Detect VBA macros in OLE2 documents — auto-exec macros, 50+ suspicious keywords
+- 🔤 **Strings Extraction** *(NEW v0.3.0)*: Advanced `filo strings` command with regex, entropy filtering, encoding detection, JSON output
+- 📊 **Entropy Visualization** *(NEW v0.3.0)*: Color-coded entropy map with `--entropy-viz` flag
 - ⚠️ **Polyglot Detection** *(v0.2.5)*: Detect dual-format files (GIFAR, PNG+ZIP, PDF+JS) with risk assessment
 - 🖥️ **CPU Architecture Detection** *(v0.2.8)*: Automatic detection of CPU architecture for executables (90+ architectures: x86, ARM, RISC-V, Xtensa, MIPS, etc.)
 - 🎨 **zsteg-Compatible Steganography** *(v0.2.7)*: 60+ bit plane LSB/MSB extraction (PNG/BMP), auto base64 decoding, file type detection, CTF-optimized
@@ -36,22 +40,36 @@ Filo transforms unknown binary blobs into classified, repairable, and explainabl
 
 ## Quick Start
 
-**Option 1: Easy Install (.deb package)**
+**Option 1: pip install (Linux / macOS / Windows)**
 ```bash
-# Clone and build
-git clone https://github.com/supunhg/Filo
-cd Filo
-./build-deb.sh
+pip install filo-forensics
 
-# Install
-sudo dpkg -i filo-forensics_0.3.0_all.deb
+# With optional YARA support
+pip install filo-forensics[yara]
+
+# All optional features
+pip install filo-forensics[all]
 ```
 
-**Option 2: From Source**
+**Option 2: Docker (any platform)**
+```bash
+docker pull ghcr.io/supunhg/filo:latest
+docker run --rm -v $(pwd):/data filo:latest analyze /data/target_file
+```
+
+**Option 3: From Source (development)**
 ```bash
 git clone https://github.com/supunhg/Filo
 cd Filo
 pip install -e .
+```
+
+**Option 4: .deb package (Linux only)**
+```bash
+git clone https://github.com/supunhg/Filo
+cd Filo
+./build-deb.sh
+sudo dpkg -i filo-forensics_0.3.0_all.deb
 ```
 
 **Usage:**

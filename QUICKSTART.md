@@ -1,53 +1,68 @@
-# Filo Quick Start Guide (v0.2.8)
+# Filo Quick Start Guide (v0.3.0)
 
 Welcome to Filo! This guide will get you up and running in 5 minutes.
 
-> ✨ **New in v0.2.8**: CPU architecture detection for executables (ELF, PE, Mach-O)! Instantly identify x86, ARM, RISC-V, Xtensa, and 90+ other architectures.
-> 
-> **Also in v0.2.7**: zsteg-compatible LSB/MSB steganography detection with automatic base64 decoding! Perfect for CTF challenges.
-> 
-> **Also in v0.2.6**: PCAP network analysis for quick flag hunting in packet captures.
+> ✨ **New in v0.3.0**: YARA scanning, Office VBA macro analysis, entropy visualization, strings extraction, CI/CD, Docker, and 22 new format specs!
 
 ## Installation
 
-### Option 1: Easy Install (.deb package) - Recommended
+Filo works on **Linux, macOS, and Windows** (Python 3.10+ required).
+
+### Option 1: pip install (cross-platform) - Recommended
+
+Works on all platforms:
+
+```bash
+pip install filo-forensics
+```
+
+**With optional features:**
+```bash
+pip install filo-forensics[yara]   # YARA scanning support
+pip install filo-forensics[all]    # all optional features
+```
+
+**Benefits:**
+- ✅ Works on Linux, macOS, and Windows
+- ✅ No cloning or building required
+- ✅ Automatic dependency resolution
+- ✅ Works from anywhere (global `filo` command)
+
+### Option 2: Docker (cross-platform)
+
+Works anywhere Docker runs:
+
+```bash
+docker pull ghcr.io/supunhg/filo:latest
+docker run --rm -v $(pwd):/data filo:latest analyze /data/target_file
+```
+
+**Benefits:**
+- ✅ No Python installation needed
+- ✅ Isolated environment
+- ✅ Same experience on all OSes
+
+### Option 3: From Source (development)
+
+```bash
+git clone https://github.com/supunhg/Filo
+cd Filo
+pip install -e .
+```
+
+> **Windows users**: Use `py -m pip install -e .` or `python -m pip install -e .`
+> 
+> **macOS/Linux users**: Use `python3 -m pip install -e .`
+
+### Option 4: .deb package (Linux only)
 
 **For Ubuntu/Debian users:**
 
 ```bash
-# Clone and build
 git clone https://github.com/supunhg/Filo
 cd Filo
 ./build-deb.sh
-
-# Install
-sudo dpkg -i filo-forensics_0.2.8_all.deb
-
-# Verify
-filo --version
-```
-
-**Benefits:**
-- ✅ No manual virtual environment setup
-- ✅ Automatic dependency installation
-- ✅ Works from anywhere (global `filo` command)
-- ✅ Isolated installation (no system conflicts)
-
-### Option 2: From Source
-
-**For development or non-Debian systems:**
-
-```bash
-# Clone the repository
-git clone https://github.com/supunhg/Filo
-cd Filo
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install
-pip install -e .
+sudo dpkg -i filo-forensics_0.3.0_all.deb
 ```
 
 ## Basic Usage
@@ -293,8 +308,10 @@ filo analyze challenge
 # Repair it
 filo repair challenge --format=png -o flag.png
 
-# Open it
-xdg-open flag.png  # Shows the flag!
+# Open it (use your OS image viewer)
+open flag.png      # macOS
+xdg-open flag.png  # Linux
+start flag.png     # Windows
 ```
 
 ## Advanced Features

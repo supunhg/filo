@@ -1,7 +1,6 @@
 """
 Tests for polyglot detection - files valid as multiple formats simultaneously.
 """
-import pytest
 import struct
 import zlib
 from filo.polyglot import PolyglotDetector
@@ -132,7 +131,7 @@ class TestPolyglotDetection:
         png_data.extend(b"IEND")
         png_data.extend(struct.pack(">I", iend_crc))
         
-        zip_offset = len(png_data)
+        _zip_offset = len(png_data)
         png_data.extend(b"PK\x03\x04")
         png_data.extend(b'\x00' * 26)
         png_data.extend(b"PK\x05\x06")
