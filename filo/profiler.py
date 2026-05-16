@@ -9,7 +9,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from io import StringIO
-from typing import Dict, List, Optional, Callable
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class TimingResult:
     calls: int = 1
     avg_duration: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.avg_duration = self.duration / self.calls if self.calls > 0 else 0
 
 
@@ -133,7 +133,7 @@ class Profiler:
         return self.report
 
     @contextmanager
-    def time_operation(self, name: str):
+    def time_operation(self, name: str) -> Iterator[None]:
         """
         Context manager for timing an operation.
 
@@ -155,7 +155,7 @@ class Profiler:
             duration = time.time() - start
             self.report.add_timing(name, duration)
 
-    def time_function(self, name: Optional[str] = None):
+    def time_function(self, name: Optional[str] = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator for timing a function.
 
@@ -168,10 +168,10 @@ class Profiler:
                 ...
         """
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             timing_name = name or func.__name__
 
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 if not self.enabled:
                     return func(*args, **kwargs)
 
@@ -197,7 +197,7 @@ def get_profiler(enabled: bool = True) -> Profiler:
     return _global_profiler
 
 
-def profile_analysis(func: Callable) -> Callable:
+def profile_analysis(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to profile an analysis function.
 
@@ -211,7 +211,7 @@ def profile_analysis(func: Callable) -> Callable:
 
 
 @contextmanager
-def profile_session():
+def profile_session() -> Iterator[Profiler]:
     """
     Context manager for a profiling session.
 

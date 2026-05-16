@@ -274,7 +274,7 @@ class JPEGMetadataExtractor:
 
         return result
 
-    def _extract_jfif(self, data: bytes, result: MetadataResult):
+    def _extract_jfif(self, data: bytes, result: MetadataResult) -> None:
         """Extract JFIF metadata"""
         if len(data) < 14:
             return
@@ -290,7 +290,7 @@ class JPEGMetadataExtractor:
         result.fields.append(MetadataField(key="XResolution", value=x_density, group="JFIF"))
         result.fields.append(MetadataField(key="YResolution", value=y_density, group="JFIF"))
 
-    def _extract_exif(self, data: bytes, result: MetadataResult):
+    def _extract_exif(self, data: bytes, result: MetadataResult) -> None:
         """Extract EXIF metadata"""
         if len(data) < 8:
             return
@@ -317,7 +317,7 @@ class JPEGMetadataExtractor:
         # Parse IFD0
         self._parse_ifd(data, ifd0_offset, endian, result, "EXIF")
 
-    def _parse_ifd(self, data: bytes, offset: int, endian: str, result: MetadataResult, group: str):
+    def _parse_ifd(self, data: bytes, offset: int, endian: str, result: MetadataResult, group: str) -> None:
         """Parse an Image File Directory (IFD)"""
         if offset + 2 > len(data):
             return
@@ -440,7 +440,7 @@ class JPEGMetadataExtractor:
 
         return None
 
-    def _extract_xmp(self, data: bytes, result: MetadataResult):
+    def _extract_xmp(self, data: bytes, result: MetadataResult) -> None:
         """Extract XMP metadata (parse key fields from XML)"""
         try:
             xmp = data.decode("utf-8", errors="ignore")
@@ -510,7 +510,7 @@ class JPEGMetadataExtractor:
         except Exception as e:
             result.warnings.append(f"Failed to extract XMP: {e}")
 
-    def _extract_iptc(self, data: bytes, result: MetadataResult):
+    def _extract_iptc(self, data: bytes, result: MetadataResult) -> None:
         """Extract IPTC metadata"""
         try:
             # IPTC uses 8BIM resource blocks
@@ -561,7 +561,7 @@ class JPEGMetadataExtractor:
         except Exception as e:
             logger.debug(f"Failed to extract IPTC: {e}")
 
-    def _parse_iptc_records(self, data: bytes, result: MetadataResult):
+    def _parse_iptc_records(self, data: bytes, result: MetadataResult) -> None:
         """Parse IPTC records from data"""
         offset = 0
         while offset < len(data) - 5:
@@ -633,7 +633,7 @@ class JPEGMetadataExtractor:
 
             offset = value_start + length
 
-    def _extract_icc_profile(self, data: bytes, result: MetadataResult):
+    def _extract_icc_profile(self, data: bytes, result: MetadataResult) -> None:
         """Extract ICC color profile metadata"""
         if len(data) < 128:
             return
@@ -934,7 +934,7 @@ def extract_metadata(data: bytes, format_hint: Optional[str] = None) -> Metadata
 
     # Extract based on format
     if format_hint == "jpeg" or data.startswith(b"\xff\xd8\xff"):
-        extractor = JPEGMetadataExtractor()
+        extractor: JPEGMetadataExtractor | PNGMetadataExtractor = JPEGMetadataExtractor()
         return extractor.extract(data)
 
     elif format_hint == "png" or data.startswith(b"\x89PNG"):

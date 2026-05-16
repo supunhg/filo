@@ -12,7 +12,7 @@ import zlib
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class StegoResult:
 class LSBExtractor:
     """Extract data from LSB of image pixels."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.min_string_len = 8
         self.max_extract_bytes = 1024 * 1024  # 1MB limit
 
@@ -86,7 +86,7 @@ class LSBExtractor:
         if not data or bits < 1 or bits > 8:
             return b""
 
-        result_bits = []
+        result_bits: list[int] = []
         max_bits = min(len(data) * bits, self.max_extract_bytes * 8)
 
         for i, byte_val in enumerate(data):
@@ -352,7 +352,7 @@ class LSBExtractor:
 class PNGStegoDetector:
     """Detect steganography in PNG files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.extractor = LSBExtractor()
 
     def extract_png_metadata(self, data: bytes) -> list[StegoResult]:
@@ -360,7 +360,7 @@ class PNGStegoDetector:
 
         This mimics zsteg's metadata extraction behavior.
         """
-        results = []
+        results: list[Any] = []
 
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             return results
@@ -542,7 +542,7 @@ class PNGStegoDetector:
 
         return results
 
-    def parse_png(self, data: bytes) -> Optional[dict]:
+    def parse_png(self, data: bytes) -> Optional[dict[str, Any]]:
         """Parse PNG using PIL for reliable pixel extraction.
 
         Returns pixels in RGBA format, row by row (xy order),
@@ -582,7 +582,7 @@ class PNGStegoDetector:
             from PIL import Image
             import io
 
-            img = Image.open(io.BytesIO(data))
+            img: Any = Image.open(io.BytesIO(data))
 
             # Convert to RGBA if needed (same as zsteg)
             if img.mode != "RGBA":
@@ -608,12 +608,12 @@ class PNGStegoDetector:
             logger.debug(f"Failed to load PNG with PIL: {e}")
             return None
 
-    def _manual_png_parse(self, data: bytes) -> Optional[dict]:
+    def _manual_png_parse(self, data: bytes) -> Optional[dict[str, Any]]:
         """Fallback manual PNG parser."""
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             return None
 
-        info = {
+        info: dict[str, Any] = {
             "width": 0,
             "height": 0,
             "bit_depth": 0,
@@ -819,7 +819,7 @@ class PNGStegoDetector:
             return bytes(result)
 
     def analyze_imagedata(
-        self, data: bytes, raw_idat_decompressed: bytes = None
+        self, data: bytes, raw_idat_decompressed: Optional[bytes] = None
     ) -> Optional[StegoResult]:
         """Analyze raw pixel data for patterns (like zsteg's imagedata).
 
@@ -1100,10 +1100,10 @@ class PNGStegoDetector:
 class BMPStegoDetector:
     """Detect steganography in BMP files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.extractor = LSBExtractor()
 
-    def parse_bmp(self, data: bytes) -> Optional[dict]:
+    def parse_bmp(self, data: bytes) -> Optional[dict[str, Any]]:
         """Parse BMP structure."""
         if not data.startswith(b"BM"):
             return None
@@ -1128,7 +1128,7 @@ class BMPStegoDetector:
 
     def detect(self, data: bytes) -> list[StegoResult]:
         """Detect LSB steganography in BMP file."""
-        results = []
+        results: list[Any] = []
 
         bmp_info = self.parse_bmp(data)
         if not bmp_info or not bmp_info["image_data"]:
@@ -1199,12 +1199,12 @@ class BMPStegoDetector:
 class PDFMetadataDetector:
     """Detect steganography in PDF metadata."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.extractor = LSBExtractor()
 
-    def extract_metadata(self, data: bytes) -> dict:
+    def extract_metadata(self, data: bytes) -> dict[str, Any]:
         """Extract PDF metadata fields."""
-        metadata = {}
+        metadata: dict[str, Any] = {}
 
         if not data.startswith(b"%PDF"):
             return metadata
@@ -1270,7 +1270,7 @@ class PDFMetadataDetector:
 
     def detect(self, data: bytes) -> list[StegoResult]:
         """Detect steganography in PDF metadata."""
-        results = []
+        results: list[Any] = []
 
         metadata = self.extract_metadata(data)
 
@@ -1329,7 +1329,7 @@ class PDFMetadataDetector:
 class TrailingDataDetector:
     """Detect data appended after file end markers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.extractor = LSBExtractor()
 
     def find_file_end(self, data: bytes, format_hint: Optional[str] = None) -> Optional[int]:
@@ -1368,7 +1368,7 @@ class TrailingDataDetector:
 
     def detect(self, data: bytes, format_hint: Optional[str] = None) -> list[StegoResult]:
         """Detect trailing data after file end marker."""
-        results = []
+        results: list[Any] = []
 
         # Auto-detect format
         if format_hint is None:
@@ -1404,7 +1404,7 @@ class TrailingDataDetector:
                     order="trailing",
                     data=printable.encode(),
                     data_type="trailing",
-                    description=f'Trailing data after {format_hint.upper()} end: "{display_str}"',
+                    description=f"Trailing data after {(format_hint or '').upper()} end: \"{display_str}\"",
                     confidence=0.95,
                     offset=end_pos,
                     size=len(printable),
@@ -1414,7 +1414,7 @@ class TrailingDataDetector:
         # Check for base64 in trailing data
         base64_data = self.extractor.detect_base64(trailing)
         if base64_data:
-            desc = f"Trailing data ({format_hint.upper()})"
+            desc = f"Trailing data ({(format_hint or '').upper()})"
             printable_b64 = self.extractor.detect_printable_strings(base64_data)
             if printable_b64:
                 desc += f': "{printable_b64[:50]}"'
@@ -1440,12 +1440,12 @@ class TrailingDataDetector:
 class SVGStegoDetector:
     """Detect hidden text and steganography in SVG files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.extractor = LSBExtractor()
 
     def detect(self, data: bytes) -> list[StegoResult]:
         """Detect hidden text in SVG files."""
-        results = []
+        results: list[Any] = []
 
         try:
             # Parse as text
@@ -1531,7 +1531,7 @@ class SVGStegoDetector:
             # Process found hidden texts
             if hidden_texts:
                 # Combine all text
-                all_text = " ".join([ht["text"] for ht in hidden_texts])
+                all_text = " ".join([str(ht["text"]) for ht in hidden_texts])
 
                 # Clean up - remove extra spaces between single characters (common in SVG stego)
                 cleaned_text = re.sub(r"(?<=[a-zA-Z0-9_{}])\s+(?=[a-zA-Z0-9_{}])", "", all_text)
@@ -1598,7 +1598,7 @@ class SVGStegoDetector:
         return results
 
 
-def detect_steganography(data, format_hint: Optional[str] = None) -> list[StegoResult]:
+def detect_steganography(data: Any, format_hint: Optional[str] = None) -> list[StegoResult]:
     """
     Detect steganography in various file formats.
 
@@ -1638,7 +1638,7 @@ def detect_steganography(data, format_hint: Optional[str] = None) -> list[StegoR
 
     # LSB analysis for images
     if format_hint == "png" or data.startswith(b"\x89PNG"):
-        detector = PNGStegoDetector()
+        detector: Any = PNGStegoDetector()
         results.extend(detector.detect(data))
 
     if format_hint == "bmp" or data.startswith(b"BM"):

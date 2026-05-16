@@ -21,7 +21,7 @@ class PCAPStats:
 
     packet_count: int
     total_bytes: int
-    protocols: Counter
+    protocols: Counter[str]
     strings: List[str]
     base64_data: List[Tuple[str, str]]  # (raw, decoded)
     flags: List[str]
@@ -32,14 +32,14 @@ class PCAPStats:
 class PCAPAnalyzer:
     """Analyze PCAP files for CTF challenges."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.packet_count = 0
         self.total_bytes = 0
-        self.protocols = Counter()
-        self.strings = []
-        self.base64_data = []
-        self.flags = []
-        self.http_requests = []
+        self.protocols: Counter[str] = Counter()
+        self.strings: list[str] = []
+        self.base64_data: list[tuple[str, str]] = []
+        self.flags: list[str] = []
+        self.http_requests: list[str] = []
 
     def parse_pcap(self, data: bytes) -> Optional[PCAPStats]:
         """Parse PCAP file and extract relevant information.

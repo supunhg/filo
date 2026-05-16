@@ -120,7 +120,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         fat_sectors.append(sec_id)
 
     # Read all FAT entries
-    fat = []
+    fat: list[int] = []
     for sec_id in fat_sectors:
         offset = sec_id * sector_size
         if offset + sector_size > len(data):
@@ -129,7 +129,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         fat.extend(entries)
 
     # Read directory entries (128 bytes each)
-    entries = []
+    dir_entries: list[tuple[str, int, int]] = []
     current_sec = first_dir_sector
     while current_sec != 0xFFFFFFFF and current_sec != 0xFFFFFFFE:
         sec_offset = current_sec * sector_size
@@ -162,7 +162,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
                 name = ""
 
             if name and obj_type in (1, 2, 5):
-                entries.append((name, start_sector, stream_size))
+                dir_entries.append((name, start_sector, stream_size))
 
         # Move to next directory sector via FAT
         fat_idx = current_sec
@@ -171,7 +171,7 @@ def _parse_ole2_directory(data: bytes) -> list[tuple[str, int, int]]:
         else:
             break
 
-    return entries
+    return dir_entries
 
 
 def _extract_ole_stream(
@@ -330,7 +330,7 @@ def _build_fat(data: bytes, sector_size: int) -> list[int]:
     if len(data) < 512:
         return []
     difat = list(struct.unpack_from("<109I", data, 76))
-    fat = []
+    fat: list[int] = []
     for sec_id in difat:
         if sec_id == 0xFFFFFFFF or sec_id == 0:
             continue

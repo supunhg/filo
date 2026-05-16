@@ -59,7 +59,7 @@ class JSONExporter:
         """
         from datetime import datetime, timezone
 
-        data = {
+        data: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_files": len(results),
             "files": [],
@@ -197,7 +197,7 @@ class SARIFExporter:
             f"File identified as {result.primary_format} with {result.confidence:.1%} confidence"
         )
 
-        sarif_result = {
+        sarif_result: dict[str, Any] = {
             "ruleId": "FILE-001",
             "level": level,
             "message": {"text": message},

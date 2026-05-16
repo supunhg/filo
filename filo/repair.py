@@ -180,7 +180,7 @@ class RepairEngine:
         method_name = f"_strategy_{strategy_name}"
         if hasattr(self, method_name):
             method = getattr(self, method_name)
-            return method(data, spec)
+            return method(data, spec)  # type: ignore[no-any-return]
 
         # Generic strategies
         if strategy_name == "generate_minimal_header":
@@ -196,8 +196,8 @@ class RepairEngine:
         self, data: bytes, spec: FormatSpec
     ) -> tuple[bytes, RepairReport]:
         """Generate minimal valid header for file."""
-        changes = []
-        warnings = []
+        changes: list[str] = []
+        warnings: list[str] = []
 
         # Get default template
         if "default" not in spec.templates:
@@ -245,7 +245,7 @@ class RepairEngine:
     def _strategy_add_pdf_header(self, data: bytes, spec: FormatSpec) -> tuple[bytes, RepairReport]:
         """Add PDF header to file."""
         pdf_header = b"%PDF-1.7\r\n"
-        changes = []
+        changes: list[str] = []
 
         if data.startswith(b"%PDF"):
             return data, RepairReport(
@@ -272,7 +272,7 @@ class RepairEngine:
     def _strategy_add_zip_header(self, data: bytes, spec: FormatSpec) -> tuple[bytes, RepairReport]:
         """Add ZIP local file header."""
         zip_header = bytes.fromhex("504B0304")
-        changes = []
+        changes: list[str] = []
 
         if data.startswith(zip_header):
             return data, RepairReport(
@@ -305,8 +305,8 @@ class RepairEngine:
         This is specifically designed for chunk-based formats like PNG
         where the header might be corrupted but chunks are intact.
         """
-        changes = []
-        warnings = []
+        changes: list[str] = []
+        warnings: list[str] = []
 
         # Currently only supports PNG format
         if spec.format != "png":
@@ -739,8 +739,8 @@ class RepairEngine:
                 warnings=["File too small to be a valid PNG"],
             )
 
-        changes = []
-        warnings = []
+        changes: list[str] = []
+        warnings: list[str] = []
         repaired = bytearray(data)
 
         # PNG signature: 89 50 4E 47 0D 0A 1A 0A
@@ -1068,8 +1068,8 @@ class RepairEngine:
     def _repair_ole2_header(self, data: bytes) -> Tuple[bytes, RepairReport]:
         """Repair or reconstruct corrupted OLE2 (Compound Document) header."""
         ole2_magic = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
-        changes = []
-        warnings = []
+        changes: list[str] = []
+        warnings: list[str] = []
 
         if len(data) >= 8 and data[:8] == ole2_magic:
             return data, RepairReport(

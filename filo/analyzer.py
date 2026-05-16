@@ -1,7 +1,7 @@
 import hashlib
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 import mmap
 
 from filo.formats import FormatDatabase
@@ -49,7 +49,7 @@ class SignatureAnalyzer:
 
     def __init__(self, database: FormatDatabase) -> None:
         self.database = database
-        self._signature_cache = {}
+        self._signature_cache: dict[str, Any] = {}
 
     def analyze(self, data: bytes, max_bytes: int = 8192) -> list[DetectionResult]:
         """
@@ -748,7 +748,7 @@ class Analyzer:
             ml_results = self.ml_detector.predict(data, entropy, len(data))
 
         format_scores: dict[str, float] = {}
-        evidence_chain: list[dict] = []
+        evidence_chain: list[dict[str, Any]] = []
 
         for result in sig_results:
             format_scores[result.format] = format_scores.get(result.format, 0.0) + (
@@ -955,7 +955,7 @@ class Analyzer:
             logger.debug(f"Crypto analysis failed: {e}")
 
         # Run YARA scanning
-        yara_matches_list: list[YARAMatchInfo] = []
+        yara_matches_list = []
         if self.yara_scanner and self.yara_scanner.available:
             try:
                 yara_result = self.yara_scanner.scan_data(data)

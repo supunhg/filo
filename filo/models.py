@@ -10,7 +10,7 @@ class YARAMatchInfo(BaseModel):
     namespace: str = Field(default="default", description="Rule namespace")
     tags: list[str] = Field(default_factory=list, description="Rule tags")
     meta: dict[str, str] = Field(default_factory=dict, description="Rule metadata")
-    matched_strings: list[dict] = Field(
+    matched_strings: list[dict[str, Any]] = Field(
         default_factory=list, description="Matched string offsets and data"
     )
     description: str = Field(default="", description="Description from meta if available")

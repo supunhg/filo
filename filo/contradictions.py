@@ -9,7 +9,7 @@ This module detects when files exhibit contradictory traits that may indicate:
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 from filo.models import Contradiction
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ class ContradictionDetector:
         return None
 
     @staticmethod
-    def check_embedded_formats(data: bytes, primary_format: str, **context) -> list[Contradiction]:
+    def check_embedded_formats(data: bytes, primary_format: str, **context: Any) -> list[Contradiction]:
         """Detect suspicious embedded format signatures."""
         contradictions = []
 
@@ -514,7 +514,7 @@ class ContradictionDetector:
         return None
 
     @staticmethod
-    def detect_all(data: bytes, primary_format: str, **context) -> list[Contradiction]:
+    def detect_all(data: bytes, primary_format: str, **context: Any) -> list[Contradiction]:
         """Run all contradiction checks and return findings."""
         contradictions = []
 

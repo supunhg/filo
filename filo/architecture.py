@@ -5,7 +5,7 @@ This module provides architecture detection for ELF, PE, and Mach-O executables.
 
 import logging
 import struct
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -169,11 +169,11 @@ class ArchitectureDetector:
         0x01000012: "PowerPC 64",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the architecture detector."""
         pass
 
-    def detect_elf_architecture(self, data: bytes) -> Optional[dict]:
+    def detect_elf_architecture(self, data: bytes) -> Optional[dict[str, Any]]:
         """
         Detect CPU architecture from ELF header.
 
@@ -218,7 +218,7 @@ class ArchitectureDetector:
             "format": "ELF",
         }
 
-    def detect_pe_architecture(self, data: bytes) -> Optional[dict]:
+    def detect_pe_architecture(self, data: bytes) -> Optional[dict[str, Any]]:
         """
         Detect CPU architecture from PE header.
 
@@ -264,7 +264,7 @@ class ArchitectureDetector:
             "format": "PE",
         }
 
-    def detect_macho_architecture(self, data: bytes) -> Optional[dict]:
+    def detect_macho_architecture(self, data: bytes) -> Optional[dict[str, Any]]:
         """
         Detect CPU architecture from Mach-O header.
 
@@ -317,7 +317,7 @@ class ArchitectureDetector:
             "format": "Mach-O",
         }
 
-    def detect(self, data: bytes) -> Optional[dict]:
+    def detect(self, data: bytes) -> Optional[dict[str, Any]]:
         """
         Auto-detect architecture from any executable format.
 

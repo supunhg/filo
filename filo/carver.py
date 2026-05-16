@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 from dataclasses import dataclass
 
 from .formats import FormatDatabase
@@ -18,7 +18,7 @@ class CarvedFile:
     format: str
     confidence: float
     data: bytes
-    metadata: Dict[str, any] = None
+    metadata: Optional[Dict[str, Any]] = None
 
     def save(self, output_path: Path) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,7 @@ class CarverEngine:
 
     def _build_signature_index(self) -> Dict[bytes, List[str]]:
         """Build index of signatures to format names for fast scanning."""
-        sig_index = {}
+        sig_index: dict[bytes, list[str]] = {}
 
         for format_name in self.format_db.list_formats():
             spec = self.format_db.get_format(format_name)

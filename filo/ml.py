@@ -216,7 +216,7 @@ class MLDetector:
             if len(data) < n:
                 continue
 
-            ngrams = Counter()
+            ngrams: Counter[bytes] = Counter()
             for i in range(scan_len - n):
                 ngram = data[i : i + n]
                 # Skip uniform patterns (all same byte)
@@ -234,7 +234,7 @@ class MLDetector:
 
     def extract_features(self, data: bytes) -> Dict[str, float]:
         """Extract comprehensive statistical features from file data."""
-        features = {}
+        features: dict[str, float] = {}
         scan_len = min(8192, len(data))
         sample = data[:scan_len]
 
@@ -295,7 +295,7 @@ class MLDetector:
 
     def build_ngram_profile(self, data: bytes, n: int = 3) -> Dict[bytes, float]:
         """Build normalized n-gram frequency profile."""
-        ngrams = Counter()
+        ngrams: Counter[bytes] = Counter()
         scan_len = min(8192, len(data))
 
         if len(data) < n:

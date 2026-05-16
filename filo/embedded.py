@@ -13,7 +13,7 @@ Author: Filo Forensics Team
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from filo.formats import FormatDatabase
 from filo.models import FormatSpec, EmbeddedObject
@@ -199,7 +199,7 @@ class EmbeddedDetector:
             )
 
     def _calculate_confidence(
-        self, data: bytes, offset: int, spec: FormatSpec, sig_spec, size: Optional[int] = None
+        self, data: bytes, offset: int, spec: FormatSpec, sig_spec: Any, size: Optional[int] = None
     ) -> float:
         """
         Calculate confidence for embedded object detection.

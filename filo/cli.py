@@ -3,7 +3,7 @@ import logging
 import sys
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import click
 from rich.console import Console
@@ -662,7 +662,7 @@ def formats_list(category: Optional[str]) -> None:
     if category:
         specs = db.get_formats_by_category(category)
     else:
-        specs = [db.get_format(name) for name in db.list_formats()]
+        specs = [spec for name in db.list_formats() if (spec := db.get_format(name)) is not None]
 
     if not specs:
         console.print("[yellow]No formats found[/yellow]")
@@ -857,9 +857,9 @@ def batch(
 
         # Show format breakdown
         if result.results:
-            format_counts = {}
+            format_counts: dict[str, int] = {}
             for path, res in result.results:
-                fmt = res.format_name
+                fmt = res.primary_format
                 format_counts[fmt] = format_counts.get(fmt, 0) + 1
 
             table = Table(title="Format Distribution", show_header=True)
@@ -1175,7 +1175,7 @@ def reset_lineage(yes: bool) -> None:
                 console.print("[dim]Cancelled[/dim]")
                 return
 
-        tracker.close()
+        tracker.close()  # type: ignore[attr-defined]
         db_path.unlink(missing_ok=True)
 
         console.print("[green]✓ Lineage database reset[/green]")
@@ -1227,7 +1227,7 @@ def stego(
             from filo.stego import PNGStegoDetector, BMPStegoDetector, BitOrder
 
             if data.startswith(b"\x89PNG"):
-                detector = PNGStegoDetector()
+                detector: Any = PNGStegoDetector()
             elif data.startswith(b"BM"):
                 detector = BMPStegoDetector()
             else:
@@ -1477,25 +1477,25 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
     from pathlib import Path
 
     try:
-        file_path = Path(file_path)
+        file_path_obj = Path(file_path)
 
         # Set output directory
         if output:
             output_dir = Path(output)
         else:
-            output_dir = Path.cwd() / f"{file_path.stem}_extracted"
+            output_dir = Path.cwd() / f"{file_path_obj.stem}_extracted"
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
         console.print(
             Panel(
-                f"[bold cyan]Recursive Extraction:[/bold cyan] {file_path.name}",
+                f"[bold cyan]Recursive Extraction:[/bold cyan] {file_path_obj.name}",
                 border_style="cyan",
             )
         )
 
         extracted_count = 0
-        files_to_process = [(file_path, output_dir, 0)]
+        files_to_process = [(file_path_obj, output_dir, 0)]
         processed_hashes = set()
 
         while files_to_process:
@@ -1710,7 +1710,7 @@ def metadata(file_path: str, output_json: bool, suspicious_only: bool) -> None:
             console.print()
 
         # Group metadata by category
-        grouped = {}
+        grouped: dict[str, list[Any]] = {}
         for field in result.fields:
             if field.group not in grouped:
                 grouped[field.group] = []
@@ -1798,8 +1798,8 @@ def reset_ml(yes: bool) -> None:
         sys.exit(1)
 
 
-def _extract_strings(data: bytes, min_len: int = 4) -> list[dict]:
-    results = []
+def _extract_strings(data: bytes, min_len: int = 4) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
     # ASCII strings
     current = bytearray()
     offset = 0
@@ -1970,15 +1970,16 @@ def strings_cmd(
                 pattern = re_module.compile(regex.encode())
                 all_strings = [s for s in all_strings if pattern.search(s["data"])]
             except re_module.error as e:
-                console.print(f"[red]Invalid regex: {e}[/red]")
+                saved_e = e
+                console.print(f"[red]Invalid regex: {saved_e}[/red]")
                 sys.exit(1)
 
         # Filter by entropy
         if min_entropy is not None:
             filtered = []
             for s in all_strings:
-                e = _string_entropy(s["data"])
-                if e >= min_entropy:
+                entropy_val = _string_entropy(s["data"])
+                if entropy_val >= min_entropy:
                     filtered.append(s)
             all_strings = filtered
 

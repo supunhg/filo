@@ -9,7 +9,7 @@ from filo.models import PolyglotMatch
 
 class PolyglotDetector:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.validators = {
             "png": self._validate_png,
             "gif": self._validate_gif,
@@ -111,9 +111,9 @@ class PolyglotDetector:
         if data[12:16] != b"IHDR":
             return False
 
-        ihdr_crc_expected = struct.unpack(">I", data[29:33])[0]
+        ihdr_crc_expected: int = struct.unpack(">I", data[29:33])[0]
         ihdr_data = data[12:29]
-        ihdr_crc_actual = zlib.crc32(ihdr_data) & 0xFFFFFFFF
+        ihdr_crc_actual: int = zlib.crc32(ihdr_data) & 0xFFFFFFFF
 
         return ihdr_crc_expected == ihdr_crc_actual
 

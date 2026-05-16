@@ -70,7 +70,7 @@ class LineageTracker:
     cryptographic hashes across all file transformations.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Optional[Path] = None) -> None:
         """
         Initialize lineage tracker.
 
@@ -85,7 +85,7 @@ class LineageTracker:
 
         self._init_database()
 
-    def _init_database(self):
+    def _init_database(self) -> None:
         """Initialize SQLite database schema"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
@@ -127,7 +127,7 @@ class LineageTracker:
         operation: OperationType,
         original_path: Optional[str] = None,
         result_path: Optional[str] = None,
-        **metadata,
+        **metadata: Any,
     ) -> FileLineage:
         """
         Record a file transformation.
@@ -179,7 +179,7 @@ class LineageTracker:
         return lineage
 
     def record_from_files(
-        self, original_path: Path, result_path: Path, operation: OperationType, **metadata
+        self, original_path: Path, result_path: Path, operation: OperationType, **metadata: Any
     ) -> FileLineage:
         """
         Record transformation using file paths.
@@ -290,7 +290,7 @@ class LineageTracker:
             Dictionary with ancestors, hash, and descendants
         """
         # Recursively walk backward to find root
-        ancestors = []
+        ancestors: list[FileLineage] = []
         current = file_hash
         visited = {current}
 
@@ -464,7 +464,7 @@ class LineageTracker:
 
         return "\n".join(lines)
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """Clear all lineage records (use with caution)"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM lineage")

@@ -16,7 +16,7 @@ from filo.models import Fingerprint
 class ToolFingerprinter:
     """Extract tool/creator signatures from file formats."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.zip_os_map = {
             0: "MS-DOS/FAT",
             1: "Amiga",
@@ -189,12 +189,12 @@ class ToolFingerprinter:
             if match:
                 version = (
                     match.group(2).decode("latin-1", errors="ignore")
-                    if match.lastindex >= 2
+                    if (match.lastindex or 0) >= 2
                     else None
                 )
                 (
                     match.group(1).decode("latin-1", errors="ignore")
-                    if match.lastindex >= 1
+                    if (match.lastindex or 0) >= 1
                     else tool_name
                 )
 

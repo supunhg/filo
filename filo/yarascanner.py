@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,8 @@ class YARAMatch:
     rule: str
     namespace: str
     tags: list[str]
-    meta: dict
-    strings: list[dict]
+    meta: dict[str, Any]
+    strings: list[dict[str, Any]]
     data: bytes = b""
 
 
@@ -28,12 +28,12 @@ class YARAScanResult:
 
 
 class YARAScanner:
-    def __init__(self):
+    def __init__(self) -> None:
         self._yara = None
         self._rules = None
         self._init_yara()
 
-    def _init_yara(self):
+    def _init_yara(self) -> None:
         try:
             import yara
 
@@ -48,6 +48,7 @@ class YARAScanner:
     def compile_rules(self, source: str) -> None:
         if not self.available:
             raise YARAError("yara-python not installed. Install with: pip install yara-python")
+        assert self._yara is not None
         self._rules = self._yara.compile(source=source)
 
     def load_rule_file(self, path: Path, namespace: Optional[str] = None) -> None:
@@ -57,8 +58,10 @@ class YARAScanner:
             raise YARAError(f"Rule file not found: {path}")
         if namespace:
             sources = {namespace: str(path)}
+            assert self._yara is not None
             self._rules = self._yara.compile(filepaths=sources)
         else:
+            assert self._yara is not None
             self._rules = self._yara.compile(filepath=str(path))
 
     def load_rule_files(self, paths: list[Path]) -> None:
@@ -72,6 +75,7 @@ class YARAScanner:
                 continue
             sources[ns] = str(path)
         if sources:
+            assert self._yara is not None
             self._rules = self._yara.compile(filepaths=sources)
 
     def scan_file(self, path: Path, timeout: int = 60) -> YARAScanResult:
@@ -96,7 +100,7 @@ class YARAScanner:
         except Exception as e:
             return YARAScanResult(error=str(e))
 
-    def _process_matches(self, raw_matches) -> YARAScanResult:
+    def _process_matches(self, raw_matches: Any) -> YARAScanResult:
         matches = []
         for m in raw_matches:
             string_matches = []
