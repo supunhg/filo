@@ -317,7 +317,9 @@ class JPEGMetadataExtractor:
         # Parse IFD0
         self._parse_ifd(data, ifd0_offset, endian, result, "EXIF")
 
-    def _parse_ifd(self, data: bytes, offset: int, endian: str, result: MetadataResult, group: str) -> None:
+    def _parse_ifd(
+        self, data: bytes, offset: int, endian: str, result: MetadataResult, group: str
+    ) -> None:
         """Parse an Image File Directory (IFD)"""
         if offset + 2 > len(data):
             return

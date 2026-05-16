@@ -111,7 +111,9 @@ class ContradictionDetector:
         return None
 
     @staticmethod
-    def check_embedded_formats(data: bytes, primary_format: str, **context: Any) -> list[Contradiction]:
+    def check_embedded_formats(
+        data: bytes, primary_format: str, **context: Any
+    ) -> list[Contradiction]:
         """Detect suspicious embedded format signatures."""
         contradictions = []
 

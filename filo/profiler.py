@@ -155,7 +155,9 @@ class Profiler:
             duration = time.time() - start
             self.report.add_timing(name, duration)
 
-    def time_function(self, name: Optional[str] = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def time_function(
+        self, name: Optional[str] = None
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator for timing a function.
 
