@@ -78,8 +78,9 @@ def main(verbose: bool) -> None:
 @click.option("-a", "--all-evidence", is_flag=True, help="Show all detection evidence")
 @click.option("-e", "--all-embedded", is_flag=True, help="Show all embedded artifacts")
 @click.option("--explain", is_flag=True, help="Show detailed confidence breakdown")
+@click.option("--entropy-viz", is_flag=True, help="Show entropy visualization chart")
 @click.option("--yara", "yara_rules", type=click.Path(exists=True), multiple=True, help="YARA rule file(s) to scan against")
-def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evidence: bool, all_embedded: bool, explain: bool, yara_rules: tuple[str, ...]) -> None:
+def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evidence: bool, all_embedded: bool, explain: bool, entropy_viz: bool, yara_rules: tuple[str, ...]) -> None:
     """
     Analyze a file to detect its format.
     
@@ -409,7 +410,20 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                     elif crypto.get('encryption_indicators'):
                         # Show indicators even if not highly confident
                         console.print(f"  [dim]Crypto indicators: {', '.join(crypto.get('encryption_indicators', []))}[/dim]")
-                        
+                
+                if entropy_viz:
+                    try:
+                        from filo.analyzer import StatisticalAnalyzer
+                        with open(file_path, "rb") as f:
+                            file_data = f.read()
+                        entropies = StatisticalAnalyzer.chunk_entropy(file_data[:65536], chunk_size=256)
+                        if entropies:
+                            bar = StatisticalAnalyzer.format_entropy_bar(entropies)
+                            console.print(f"[bold]Entropy Map:[/bold] {bar}")
+                            console.print("  [dim]█ low    █ medium    █ high    █ very high[/dim]")
+                            console.print("  [dim](first 64KB, 256B chunks)[/dim]")
+                    except Exception:
+                        pass
             console.print(f"[bold]SHA256:[/bold] {result.checksum_sha256}")
             
             # Evidence
@@ -1593,6 +1607,229 @@ def reset_ml(yes: bool) -> None:
         console.print(f"[green]✓ ML model reset[/green]")
         console.print(f"[dim]Deleted {pattern_count} patterns from {model_path}[/dim]")
         
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+def _extract_strings(data: bytes, min_len: int = 4) -> list[dict]:
+    results = []
+    # ASCII strings
+    current = bytearray()
+    offset = 0
+    for i, byte in enumerate(data):
+        if 32 <= byte < 127:
+            if not current:
+                offset = i
+            current.append(byte)
+        else:
+            if len(current) >= min_len:
+                results.append({
+                    "type": "ascii",
+                    "offset": offset,
+                    "data": bytes(current),
+                    "length": len(current),
+                })
+            current = bytearray()
+    if len(current) >= min_len:
+        results.append({
+            "type": "ascii",
+            "offset": len(data) - len(current),
+            "data": bytes(current),
+            "length": len(current),
+        })
+
+    # Unicode (UTF-16LE) strings
+    current = bytearray()
+    offset = 0
+    i = 0
+    while i < len(data) - 1:
+        if data[i+1] == 0 and 32 <= data[i] < 127:
+            if not current:
+                offset = i
+            current.extend(data[i:i+2])
+            i += 2
+        else:
+            if len(current) >= min_len * 2:
+                results.append({
+                    "type": "unicode",
+                    "offset": offset,
+                    "data": bytes(current),
+                    "length": len(current) // 2,
+                })
+            current = bytearray()
+            i += 1
+    if len(current) >= min_len * 2:
+        results.append({
+            "type": "unicode",
+            "offset": len(data) - len(current),
+            "data": bytes(current),
+            "length": len(current) // 2,
+        })
+
+    results.sort(key=lambda r: r["offset"])
+    return results
+
+
+def _string_entropy(s: bytes) -> float:
+    if not s:
+        return 0.0
+    freq = [0] * 256
+    for b in s:
+        freq[b] += 1
+    import math
+    entropy = 0.0
+    for f in freq:
+        if f > 0:
+            p = f / len(s)
+            entropy -= p * math.log2(p)
+    return entropy
+
+
+def _detect_encoding(s: bytes) -> Optional[str]:
+    import base64
+    try:
+        decoded = base64.b64decode(s, validate=True)
+        if len(decoded) > 2 and len(decoded) <= len(s) * 3 // 4:
+            return f"base64 ({len(decoded)} bytes)"
+    except Exception:
+        pass
+    printable_count = sum(1 for b in s if 32 <= b < 127)
+    if len(s) > 0 and printable_count / len(s) > 0.8:
+        try:
+            s.decode("utf-8")
+            return "utf-8"
+        except Exception:
+            pass
+    if len(s) > 0 and printable_count / len(s) > 0.5:
+        try:
+            s.decode("utf-16-le")
+            return "utf-16le"
+        except Exception:
+            pass
+    return None
+
+
+@main.command()
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option("-n", "--min-len", default=4, type=int, help="Minimum string length")
+@click.option("-e", "--entropy", "min_entropy", type=float, help="Minimum entropy filter")
+@click.option("--encode-detect", is_flag=True, help="Detect encoding (base64, utf-8)")
+@click.option("--regex", help="Regex pattern to search for")
+@click.option("--type", "string_type", type=click.Choice(["ascii", "unicode", "all"]), default="all", help="String type to extract")
+@click.option("-c", "--count", type=int, default=0, help="Limit number of strings shown (0 = all)")
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option("--offsets/--no-offsets", default=True, help="Show byte offsets")
+@click.option("--entropy-colors/--no-entropy-colors", default=True, help="Color by entropy")
+def strings_cmd(file_path: str, min_len: int, min_entropy: float, encode_detect: bool, regex: str, string_type: str, count: int, output_json: bool, offsets: bool, entropy_colors: bool) -> None:
+    """
+    Extract strings from binary files with advanced filtering.
+    
+    Supports ASCII and Unicode strings, entropy filtering, encoding detection,
+    and regex pattern matching.
+    
+    Examples:
+        filo strings file.bin
+        filo strings file.bin -n 8                     # Minimum 8 chars
+        filo strings file.bin -e 5.0                   # Only high-entropy strings
+        filo strings file.bin --encode-detect          # Show encoding detection
+        filo strings file.bin --regex "picoCTF\\{.*\\}"  # Search for CTF flags
+        filo strings file.bin --type unicode           # Unicode only
+        filo strings file.bin -c 20 --json             # Top 20 as JSON
+    """
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        all_strings = _extract_strings(data, min_len)
+        
+        # Filter by type
+        if string_type == "ascii":
+            all_strings = [s for s in all_strings if s["type"] == "ascii"]
+        elif string_type == "unicode":
+            all_strings = [s for s in all_strings if s["type"] == "unicode"]
+        
+        # Filter by regex
+        if regex:
+            import re as re_module
+            try:
+                pattern = re_module.compile(regex.encode())
+                all_strings = [s for s in all_strings if pattern.search(s["data"])]
+            except re_module.error as e:
+                console.print(f"[red]Invalid regex: {e}[/red]")
+                sys.exit(1)
+        
+        # Filter by entropy
+        if min_entropy is not None:
+            filtered = []
+            for s in all_strings:
+                e = _string_entropy(s["data"])
+                if e >= min_entropy:
+                    filtered.append(s)
+            all_strings = filtered
+        
+        # Limit count
+        if count > 0:
+            all_strings = all_strings[:count]
+        
+        if output_json:
+            import json as json_module
+            output = []
+            for s in all_strings:
+                entry = {
+                    "offset": s["offset"],
+                    "type": s["type"],
+                    "length": s["length"],
+                    "string": s["data"].decode("utf-8", errors="replace"),
+                    "entropy": round(_string_entropy(s["data"]), 2),
+                }
+                if encode_detect:
+                    entry["encoding"] = _detect_encoding(s["data"])
+                output.append(entry)
+            console.print(json_module.dumps(output, indent=2))
+        else:
+            if not all_strings:
+                console.print("[yellow]No strings found matching criteria[/yellow]")
+                return
+            
+            console.print(f"\n[bold]Strings in:[/bold] {file_path}")
+            console.print(f"[dim]{len(all_strings)} string(s) found (min length: {min_len})[/dim]\n")
+            
+            for s in all_strings:
+                entropy = _string_entropy(s["data"])
+                text = s["data"].decode("utf-8", errors="replace")
+                text = text.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+                
+                # Truncate long strings for display
+                display = text[:200] + "..." if len(text) > 200 else text
+                
+                # Color by entropy
+                if entropy_colors:
+                    if entropy > 6.5:
+                        color = "red"
+                    elif entropy > 5.0:
+                        color = "yellow"
+                    elif entropy > 3.5:
+                        color = "cyan"
+                    else:
+                        color = "white"
+                else:
+                    color = "white"
+                
+                parts = []
+                if offsets:
+                    parts.append(f"[dim]0x{s['offset']:08x}[/dim]")
+                parts.append(f"[{color}]{display}[/{color}]")
+                
+                if encode_detect:
+                    enc = _detect_encoding(s["data"])
+                    if enc:
+                        parts.append(f"[green]({enc})[/green]")
+                
+                console.print("  ".join(parts))
+            
+            console.print(f"\n[dim]Use --json for machine-readable output[/dim]")
+    
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)

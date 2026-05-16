@@ -70,6 +70,12 @@ class RepairEngine:
             "bmp": [
                 self._repair_bmp_header,
             ],
+            "elf": [
+                self._repair_elf_header,
+            ],
+            "ole2": [
+                self._repair_ole2_header,
+            ],
         }
     
     def repair(
@@ -953,7 +959,151 @@ class RepairEngine:
             confidence=0.95,
             validation_result=f"Repaired BMP: {width}x{calculated_height}, {bits_per_pixel}bpp"
         )
-    
+
+    def _repair_elf_header(self, data: bytes) -> Tuple[bytes, RepairReport]:
+        """Repair or reconstruct corrupted ELF header."""
+        changes = []
+        warnings = []
+        repaired = data
+
+        if len(data) >= 4 and data[:4] == b"\x7fELF":
+            return data, RepairReport(
+                success=False,
+                strategy_used="repair_elf_header",
+                original_size=len(data),
+                repaired_size=len(data),
+                changes_made=[],
+                warnings=["ELF magic already present"],
+            )
+
+        if len(data) < 16:
+            return data, RepairReport(
+                success=False,
+                strategy_used="repair_elf_header",
+                original_size=len(data),
+                repaired_size=len(data),
+                changes_made=[],
+                warnings=["Data too small for ELF header"],
+            )
+
+        ei_class = data[4] if len(data) > 4 else 2
+        ei_data = data[5] if len(data) > 5 else 1
+        if ei_class not in (1, 2):
+            ei_class = 2
+            warnings.append("EI_CLASS not detected, assuming 64-bit")
+        elif ei_class == 1:
+            warnings.append("Detected 32-bit ELF")
+        if ei_data not in (1, 2):
+            ei_data = 1
+            warnings.append("EI_DATA not detected, assuming little-endian")
+
+        entry_offset = 0x18 if ei_class == 1 else 0x18
+        header = bytearray(b"\x7fELF")
+        header.append(ei_class)
+        header.append(ei_data)
+        header.append(1)  # EI_VERSION
+        header.append(0)  # EI_OSABI
+        header.extend(b"\x00" * 8)  # EI_ABIVERSION + padding
+        if ei_class == 1:
+            header.extend(struct.pack("<H", 2))  # e_type = ET_EXEC
+            header.extend(struct.pack("<H", 0x3E))  # e_machine x86-64
+            header.extend(struct.pack("<I", 1))  # e_version
+            header.extend(struct.pack("<I", entry_offset))  # e_entry (dummy)
+            header.extend(struct.pack("<I", 64))  # e_phoff
+            header.extend(struct.pack("<I", 0))  # e_shoff
+            header.extend(struct.pack("<I", 0))  # e_flags
+            header.extend(struct.pack("<H", 64))  # e_ehsize
+            header.extend(struct.pack("<H", 56))  # e_phentsize
+            header.extend(struct.pack("<H", 1))  # e_phnum
+            header.extend(struct.pack("<H", 0))  # e_shentsize
+            header.extend(struct.pack("<H", 0))  # e_shnum
+            header.extend(struct.pack("<H", 0))  # e_shstrndx
+        else:
+            header.extend(struct.pack("<H", 2))
+            header.extend(struct.pack("<H", 0x3E))
+            header.extend(struct.pack("<I", 1))
+            header.extend(struct.pack("<Q", entry_offset))
+            header.extend(struct.pack("<Q", 64))
+            header.extend(struct.pack("<Q", 0))
+            header.extend(struct.pack("<I", 0))
+            header.extend(struct.pack("<H", 64))
+            header.extend(struct.pack("<H", 56))
+            header.extend(struct.pack("<H", 1))
+            header.extend(struct.pack("<H", 0))
+            header.extend(struct.pack("<H", 0))
+            header.extend(struct.pack("<H", 0))
+
+        repaired = bytes(header) + data
+        changes.append("Prepended ELF header")
+        if warnings:
+            changes.extend(warnings)
+
+        return repaired, RepairReport(
+            success=True,
+            strategy_used="repair_elf_header",
+            original_size=len(data),
+            repaired_size=len(repaired),
+            changes_made=changes,
+            warnings=warnings,
+            confidence=0.7,
+            validation_result=f"Reconstructed ELF header: {'64' if ei_class == 2 else '32'}-bit, {'big' if ei_data == 2 else 'little'}-endian"
+        )
+
+    def _repair_ole2_header(self, data: bytes) -> Tuple[bytes, RepairReport]:
+        """Repair or reconstruct corrupted OLE2 (Compound Document) header."""
+        ole2_magic = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+        changes = []
+        warnings = []
+
+        if len(data) >= 8 and data[:8] == ole2_magic:
+            return data, RepairReport(
+                success=False,
+                strategy_used="repair_ole2_header",
+                original_size=len(data),
+                repaired_size=len(data),
+                changes_made=[],
+                warnings=["OLE2 magic already present"],
+            )
+
+        if len(data) < 512:
+            return data, RepairReport(
+                success=False,
+                strategy_used="repair_ole2_header",
+                original_size=len(data),
+                repaired_size=len(data),
+                changes_made=[],
+                warnings=["Data too small for OLE2 header"],
+            )
+
+        header = bytearray(512)
+        header[:8] = ole2_magic
+        header[8:16] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+        struct.pack_into("<H", header, 24, 9)
+        struct.pack_into("<H", header, 26, 6)
+        struct.pack_into("<I", header, 28, 0)
+        struct.pack_into("<I", header, 44, 0)
+        struct.pack_into("<I", header, 48, 0)
+        struct.pack_into("<I", header, 56, 1)
+
+        if len(data) >= 512:
+            tail = data[512:]
+            reconstructed = bytes(header) + tail
+        else:
+            reconstructed = bytes(header[:len(data)])
+
+        changes.append("Reconstructed OLE2 compound document header")
+
+        return reconstructed, RepairReport(
+            success=True,
+            strategy_used="repair_ole2_header",
+            original_size=len(data),
+            repaired_size=len(reconstructed),
+            changes_made=changes,
+            warnings=warnings,
+            confidence=0.6,
+            validation_result="Reconstructed OLE2 header with default block allocation table"
+        )
+
     def _add_pdf_eof(self, data: bytes) -> Tuple[bytes, RepairReport]:
         """Add PDF end-of-file marker."""
         if data.rstrip().endswith(b"%%EOF"):

@@ -190,3 +190,48 @@ def test_analyze_opendocument_formats():
     assert result.primary_format == "ods"
     assert result.confidence > 0.9
 
+
+
+class TestEntropyViz:
+    def test_chunk_entropy_empty(self):
+        from filo.analyzer import StatisticalAnalyzer
+        assert StatisticalAnalyzer.chunk_entropy(b"") == []
+
+    def test_chunk_entropy_uniform(self):
+        from filo.analyzer import StatisticalAnalyzer
+        data = b"\x00" * 1024
+        entropies = StatisticalAnalyzer.chunk_entropy(data)
+        assert len(entropies) == 4
+        for e in entropies:
+            assert e == 0.0
+
+    def test_chunk_entropy_random(self):
+        from filo.analyzer import StatisticalAnalyzer
+        data = bytes(range(256)) * 4
+        entropies = StatisticalAnalyzer.chunk_entropy(data)
+        assert len(entropies) == 4
+        for e in entropies:
+            assert e > 7.0
+
+    def test_chunk_entropy_mixed(self):
+        from filo.analyzer import StatisticalAnalyzer
+        nulls = b"\x00" * 512
+        random_data = bytes(range(256)) * 2
+        data = nulls + random_data
+        entropies = StatisticalAnalyzer.chunk_entropy(data)
+        assert len(entropies) == 4
+        assert entropies[0] == 0.0
+        assert entropies[1] == 0.0
+        assert entropies[2] > 7.0
+        assert entropies[3] > 7.0
+
+    def test_format_entropy_bar(self):
+        from filo.analyzer import StatisticalAnalyzer
+        entropies = [0.0, 2.0, 5.0, 8.0]
+        bar = StatisticalAnalyzer.format_entropy_bar(entropies)
+        assert bar is not None
+        assert len(bar) > 0
+
+    def test_format_entropy_bar_empty(self):
+        from filo.analyzer import StatisticalAnalyzer
+        assert StatisticalAnalyzer.format_entropy_bar([]) == ""

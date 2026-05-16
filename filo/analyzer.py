@@ -539,6 +539,44 @@ class StatisticalAnalyzer:
                 entropy -= probability * math.log2(probability)
         
         return entropy
+    
+    @staticmethod
+    def chunk_entropy(data: bytes, chunk_size: int = 256) -> list[float]:
+        if not data:
+            return []
+        entropies = []
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i:i + chunk_size]
+            entropies.append(StatisticalAnalyzer.calculate_entropy(chunk, sample_size=chunk_size))
+        return entropies
+    
+    @staticmethod
+    def format_entropy_bar(entropies: list[float], width: int = 60) -> str:
+        if not entropies:
+            return ""
+        blocks = []
+        max_entropy = 8.0
+        for e in entropies:
+            ratio = min(1.0, e / max_entropy)
+            if ratio < 0.3:
+                color = "green"
+            elif ratio < 0.6:
+                color = "yellow"
+            elif ratio < 0.8:
+                color = "orange3"
+            else:
+                color = "red"
+            bar_len = max(1, int(ratio * 4))
+            bar_char = "█" * bar_len
+            blocks.append(f"[{color}]{bar_char}[/{color}]")
+        if not blocks:
+            return ""
+        result = []
+        per_segment = max(1, len(blocks) // width)
+        for i in range(0, len(blocks), per_segment):
+            segment = blocks[i:i + per_segment]
+            result.append("".join(segment))
+        return "".join(result[:width])
 
 
 class Analyzer:
