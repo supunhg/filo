@@ -1,6 +1,5 @@
 """Tests for CPU architecture detection."""
 
-import pytest
 from filo.architecture import ArchitectureDetector
 
 

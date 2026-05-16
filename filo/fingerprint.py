@@ -7,8 +7,7 @@ Goes beyond format detection to answer: Who made this? When? How?
 import struct
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Any
-from pathlib import Path
+from typing import List, Optional
 
 from filo.models import Fingerprint
 
@@ -96,7 +95,7 @@ class ToolFingerprinter:
                 try:
                     version_needed = struct.unpack("<H", data[pos+4:pos+6])[0]
                     version_made = version_needed
-                    flags = struct.unpack("<H", data[pos+6:pos+8])[0]
+                    struct.unpack("<H", data[pos+6:pos+8])[0]
                     method = struct.unpack("<H", data[pos+8:pos+10])[0]
                     mod_time = struct.unpack("<H", data[pos+10:pos+12])[0]
                     mod_date = struct.unpack("<H", data[pos+12:pos+14])[0]
@@ -178,7 +177,7 @@ class ToolFingerprinter:
             match = pattern.search(search_data)
             if match:
                 version = match.group(2).decode('latin-1', errors='ignore') if match.lastindex >= 2 else None
-                app_name = match.group(1).decode('latin-1', errors='ignore') if match.lastindex >= 1 else tool_name
+                match.group(1).decode('latin-1', errors='ignore') if match.lastindex >= 1 else tool_name
                 
                 fingerprints.append(Fingerprint(
                     category="pdf_producer",

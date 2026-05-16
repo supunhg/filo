@@ -2,8 +2,6 @@
 Tests for FormatDatabase
 """
 
-import pytest
-from pathlib import Path
 
 from filo.formats import FormatDatabase
 

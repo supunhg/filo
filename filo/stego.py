@@ -12,9 +12,8 @@ import zlib
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Optional, Iterator
+from typing import Optional
 from enum import Enum
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +163,7 @@ class LSBExtractor:
                 if match:
                     return match.group()
             
-        except:
+        except Exception:
             pass
         
         return None
@@ -206,7 +205,7 @@ class LSBExtractor:
                 # Add more details for Targa images (like zsteg does)
                 if 'Targa' in desc and len(data) >= 18:
                     try:
-                        id_length = data[0]
+                        data[0]
                         color_map_type = data[1]
                         image_type = data[2]
                         width = struct.unpack('<H', data[12:14])[0]
@@ -216,7 +215,7 @@ class LSBExtractor:
                         alpha_bits = descriptor & 0x0F
                         
                         # Build detailed description like zsteg
-                        details = f"Targa image data"
+                        details = "Targa image data"
                         if image_type == 1:
                             details += " - Map"
                         elif image_type == 2:
@@ -252,7 +251,7 @@ class LSBExtractor:
                             details += f" - {alpha_bits}-bit alpha"
                         
                         return details
-                    except:
+                    except Exception:
                         pass
                 
                 return desc
@@ -414,13 +413,13 @@ class PNGStegoDetector:
                         
                         if len(remaining) >= 2:
                             compression_flag = remaining[0]
-                            compression_method = remaining[1]
+                            remaining[1]
                             
                             # Find language and text
                             remaining = remaining[2:]
                             null_pos2 = remaining.find(b'\0')
                             if null_pos2 >= 0:
-                                language = remaining[:null_pos2].decode('utf-8', errors='ignore')
+                                remaining[:null_pos2].decode('utf-8', errors='ignore')
                                 remaining = remaining[null_pos2+1:]
                                 
                                 # Skip translated keyword
@@ -432,7 +431,7 @@ class PNGStegoDetector:
                                     if compression_flag == 1:
                                         try:
                                             text_data = zlib.decompress(text_data)
-                                        except:
+                                        except Exception:
                                             pass
                                     
                                     text = text_data.decode('utf-8', errors='ignore')
@@ -461,7 +460,7 @@ class PNGStegoDetector:
                         keyword = chunk_data[:null_pos].decode('latin1', errors='ignore')
                         
                         if len(chunk_data) > null_pos + 2:
-                            compression_method = chunk_data[null_pos+1]
+                            chunk_data[null_pos+1]
                             compressed_text = chunk_data[null_pos+2:]
                             
                             try:
@@ -549,13 +548,13 @@ class PNGStegoDetector:
                         break
                     
                     offset += 12 + chunk_len
-                except:
+                except Exception:
                     break
             
             if idat_compressed:
                 try:
                     raw_idat_decompressed = zlib.decompress(idat_compressed)
-                except:
+                except Exception:
                     pass
         
         try:
@@ -818,7 +817,6 @@ class PNGStegoDetector:
         while i < len(analyze_data):
             # Start collecting printable characters
             printable_chars = []
-            start_pos = i
             
             while i < len(analyze_data):
                 byte = analyze_data[i]
@@ -974,7 +972,7 @@ class PNGStegoDetector:
             file_type = self.extractor.detect_file_type(extracted)
             if file_type:
                 # Show first bytes as preview
-                preview = ' '.join(f'\\{ord(c):03o}' if c < ' ' or c > '~' else c for c in extracted[:50].decode('latin-1', errors='ignore'))
+                ' '.join(f'\\{ord(c):03o}' if c < ' ' or c > '~' else c for c in extracted[:50].decode('latin-1', errors='ignore'))
                 results.append(StegoResult(
                     method=f"b{bits},{channels},{bit_order},{px_order}",
                     channel=channels,
@@ -1023,7 +1021,7 @@ class PNGStegoDetector:
             zlib_data = self.extractor.detect_zlib(extracted)
             if zlib_data:
                 # Detect what the decompressed data is
-                desc = f"zlib compressed data"
+                desc = "zlib compressed data"
                 if zlib_data.startswith(b'%PDF'):
                     desc = "zlib: PDF document"
                 elif zlib_data.startswith(b'\x89PNG'):
@@ -1219,7 +1217,7 @@ class PDFMetadataDetector:
                         value = data[value_start+1:value_end]
                         try:
                             metadata[field_name] = value.decode('utf-8', errors='ignore')
-                        except:
+                        except Exception:
                             metadata[field_name] = value.decode('latin-1', errors='ignore')
                         break
                 elif data[value_start:value_start+1] == b'<':
@@ -1231,7 +1229,7 @@ class PDFMetadataDetector:
                             # Decode hex
                             value = bytes.fromhex(hex_value.decode('ascii'))
                             metadata[field_name] = value.decode('utf-8', errors='ignore')
-                        except:
+                        except Exception:
                             pass
                         break
                 

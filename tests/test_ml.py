@@ -1,5 +1,3 @@
-import pytest
-from pathlib import Path
 
 from filo.ml import MLDetector, LearningExample, PatternMatch
 

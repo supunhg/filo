@@ -7,8 +7,7 @@ import logging
 import tarfile
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Optional, BinaryIO
+from typing import List, Optional
 
 from filo.analyzer import Analyzer
 from filo.models import AnalysisResult
@@ -136,7 +135,7 @@ class ContainerDetector:
         
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                total = len(zf.namelist())
+                len(zf.namelist())
                 
                 for name in zf.namelist():
                     info = zf.getinfo(name)

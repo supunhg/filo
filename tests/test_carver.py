@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from filo.carver import CarverEngine, CarvedFile, StreamCarver
 
 

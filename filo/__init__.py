@@ -37,6 +37,8 @@ __all__ = [
     "BMPStegoDetector",
     "PDFMetadataDetector",
     "TrailingDataDetector",
+    "CryptoDetector",
+    "CryptoAnalysis",
     "YARAScanner",
     "YARAScanResult",
     "YARAMatch",

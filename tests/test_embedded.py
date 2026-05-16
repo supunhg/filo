@@ -5,7 +5,6 @@ Author: Filo Forensics Team
 """
 
 import pytest
-from pathlib import Path
 
 from filo.embedded import EmbeddedDetector, EmbeddedObject
 from filo.formats import FormatDatabase
@@ -236,7 +235,7 @@ class TestEmbeddedDetector:
         
         full_data = pe_data + overlay
         
-        overlay_obj = detector.detect_overlay(full_data, "pe")
+        detector.detect_overlay(full_data, "pe")
         
         # PE overlay detection is complex - just verify no crash
         # (Overlay detection needs proper PE parsing which is simplified here)

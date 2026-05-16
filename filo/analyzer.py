@@ -5,7 +5,7 @@ from typing import Optional, Union
 import mmap
 
 from filo.formats import FormatDatabase
-from filo.models import AnalysisResult, DetectionResult, ConfidenceContribution, Fingerprint, ArchitectureInfo, YARAMatchInfo, OfficeMacroInfo
+from filo.models import AnalysisResult, DetectionResult, ConfidenceContribution, ArchitectureInfo, YARAMatchInfo, OfficeMacroInfo
 from filo.contradictions import ContradictionDetector
 from filo.embedded import EmbeddedDetector
 from filo.fingerprint import ToolFingerprinter
@@ -20,7 +20,7 @@ except ImportError:
     YARA_AVAILABLE = False
 
 try:
-    from filo.office import analyze_office_file, OfficeAnalysisResult
+    from filo.office import analyze_office_file
     OFFICE_AVAILABLE = True
 except ImportError:
     OFFICE_AVAILABLE = False
@@ -73,7 +73,6 @@ class SignatureAnalyzer:
                 
                 # If offset_max is set, scan within the range
                 if sig.offset_max is not None:
-                    found = False
                     search_end = min(sig.offset_max, len(scan_data) - len(sig_bytes) + 1)
                     for search_offset in range(sig.offset, search_end):
                         if scan_data[search_offset:search_offset + len(sig_bytes)] == sig_bytes:
@@ -87,7 +86,6 @@ class SignatureAnalyzer:
                                 value=match_contribution,
                                 description=f"{sig.description} at offset {search_offset}"
                             ))
-                            found = True
                             break
                 else:
                     # Exact offset match
@@ -287,7 +285,7 @@ class ZipBasedFormatAnalyzer:
                 try:
                     zf = zipfile.ZipFile(file_path, 'r')
                     namelist = zf.namelist()
-                except Exception as ex:
+                except Exception:
                     # Fall back to data buffer if file access fails
                     zip_buffer = io.BytesIO(data)
                     zf = zipfile.ZipFile(zip_buffer, 'r')
@@ -296,8 +294,6 @@ class ZipBasedFormatAnalyzer:
                 zip_buffer = io.BytesIO(data)
                 zf = zipfile.ZipFile(zip_buffer, 'r')
                 namelist = zf.namelist()
-            namelist_lower = [name.lower() for name in namelist]
-            
             # Check for Office Open XML formats (DOCX, PPTX, XLSX)
             # Support both standard and non-standard structures (with subdirectories)
             has_content_types = any('[content_types].xml' in name.lower() for name in namelist)

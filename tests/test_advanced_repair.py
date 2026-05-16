@@ -2,12 +2,10 @@
 
 import struct
 import zlib
-from pathlib import Path
 
 import pytest
 
 from filo.repair import RepairEngine
-from filo.formats import FormatDatabase
 
 
 @pytest.fixture

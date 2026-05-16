@@ -2,8 +2,7 @@
 Tests for cryptographic detection functionality
 """
 
-import pytest
-from filo.crypto import CryptoDetector, CryptoAnalysis
+from filo.crypto import CryptoDetector
 
 
 class TestEntropyInterpretation:

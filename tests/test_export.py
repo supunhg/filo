@@ -7,7 +7,7 @@ import pytest
 
 from filo.export import JSONExporter, SARIFExporter, export_to_file
 from filo.analyzer import Analyzer
-from filo.repair import RepairEngine, RepairReport
+from filo.repair import RepairReport
 
 
 @pytest.fixture

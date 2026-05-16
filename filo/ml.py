@@ -1,12 +1,10 @@
-import json
 import pickle
 import logging
 import zlib
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict, Counter
-import hashlib
 import math
 
 logger = logging.getLogger(__name__)
@@ -255,7 +253,7 @@ class MLDetector:
         try:
             compressed = zlib.compress(sample, level=6)
             features['compression_ratio'] = len(compressed) / len(sample)
-        except:
+        except Exception:
             features['compression_ratio'] = 1.0
         
         # Longest repeating byte sequence

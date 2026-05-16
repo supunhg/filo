@@ -5,12 +5,10 @@ Export functionality for JSON and SARIF reports.
 import json
 import logging
 from dataclasses import asdict
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import hashlib
 
-from filo.models import AnalysisResult, FormatSpec
+from filo.models import AnalysisResult
 from filo.repair import RepairReport
 
 logger = logging.getLogger(__name__)

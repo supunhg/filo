@@ -1,8 +1,7 @@
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, BinaryIO
+from typing import List, Dict, Optional
 from dataclasses import dataclass
-import mmap
 
 from .formats import FormatDatabase
 from .analyzer import Analyzer

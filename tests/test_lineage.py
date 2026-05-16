@@ -5,7 +5,6 @@ Tests for hash lineage tracking and chain-of-custody.
 import hashlib
 import json
 import pytest
-from pathlib import Path
 from datetime import datetime
 
 from filo.lineage import LineageTracker, FileLineage, OperationType
@@ -84,7 +83,7 @@ def test_get_descendants(tracker, sample_data):
     )
     
     # Record repaired -> carved
-    lineage2 = tracker.record(
+    tracker.record(
         original_data=sample_data["repaired"],
         result_data=sample_data["carved"],
         operation=OperationType.CARVE
@@ -126,7 +125,7 @@ def test_get_full_chain(tracker, sample_data):
     # Create a chain: original -> repaired -> carved
     original_hash = hashlib.sha256(sample_data["original"]).hexdigest()
     repaired_hash = hashlib.sha256(sample_data["repaired"]).hexdigest()
-    carved_hash = hashlib.sha256(sample_data["carved"]).hexdigest()
+    hashlib.sha256(sample_data["carved"]).hexdigest()
     
     tracker.record(
         original_data=sample_data["original"],
@@ -311,7 +310,7 @@ def test_complex_lineage_chain(tracker):
     exported = b"Exported JSON"
     
     corrupt_hash = hashlib.sha256(corrupt).hexdigest()
-    repaired_hash = hashlib.sha256(repaired).hexdigest()
+    hashlib.sha256(repaired).hexdigest()
     carved_hash = hashlib.sha256(carved).hexdigest()
     
     # Step 1: Repair

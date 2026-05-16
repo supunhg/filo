@@ -1,7 +1,5 @@
 """Tests for batch processing functionality."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -144,7 +142,7 @@ def test_progress_callback(test_files):
     config = BatchConfig(progress_callback=callback)
     processor = BatchProcessor(config)
     
-    result = processor.process_directory(temp_dir)
+    processor.process_directory(temp_dir)
     
     # Should have progress updates
     assert len(progress_updates) == 4

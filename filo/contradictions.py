@@ -196,7 +196,7 @@ class ContradictionDetector:
                     try:
                         zf.testzip()
                         break
-                    except Exception as e:
+                    except Exception:
                         corrupt_files.append(name)
                 
                 if corrupt_files:
@@ -408,7 +408,7 @@ class ContradictionDetector:
             import struct
             
             # Read BMP header fields
-            file_size = struct.unpack("<I", data[2:6])[0]
+            struct.unpack("<I", data[2:6])[0]
             pixel_offset = struct.unpack("<I", data[10:14])[0]
             dib_header_size = struct.unpack("<I", data[14:18])[0]
             width = struct.unpack("<I", data[18:22])[0]
@@ -440,7 +440,7 @@ class ContradictionDetector:
             
             # Calculate expected height from file size
             if bits_per_pixel > 0 and width > 0:
-                bytes_per_pixel = bits_per_pixel // 8
+                bits_per_pixel // 8
                 row_size = ((width * bits_per_pixel + 31) // 32) * 4  # Row size aligned to 4 bytes
                 
                 # Use the actual pixel offset if it seems valid

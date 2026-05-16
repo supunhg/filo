@@ -1,9 +1,9 @@
 import logging
 import struct
 import zlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, Tuple
 
 from filo.formats import FormatDatabase
 from filo.models import FormatSpec
@@ -616,7 +616,6 @@ class RepairEngine:
             )
         
         changes = []
-        warnings = []
         
         # Look for end of central directory
         eocd_sig = b"PK\x05\x06"
@@ -803,7 +802,7 @@ class RepairEngine:
                         chunk_data = repaired[pos+4:pos+8+chunk_length]
                         crc = zlib.crc32(chunk_data) & 0xffffffff
                         struct.pack_into(">I", repaired, pos+8+chunk_length, crc)
-                        changes.append(f"Recalculated pHYs CRC")
+                        changes.append("Recalculated pHYs CRC")
                 
                 # Fix corrupted IDAT chunk
                 # Check for IDAT-like corruptions: length has 0xAAAA prefix or type is corrupted
@@ -928,7 +927,7 @@ class RepairEngine:
         
         # Calculate correct height from file size
         # Formula: height = (file_size - header_size) / (width * bytes_per_pixel)
-        bytes_per_pixel = bits_per_pixel // 8
+        bits_per_pixel // 8
         row_size = ((width * bits_per_pixel + 31) // 32) * 4  # Row size aligned to 4 bytes
         pixel_data_size = file_size - standard_offset
         calculated_height = pixel_data_size // row_size

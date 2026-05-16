@@ -77,8 +77,8 @@ class PCAPAnalyzer:
                 # Packet header: ts_sec(4) ts_usec(4) incl_len(4) orig_len(4)
                 try:
                     incl_len = struct.unpack(f'{endian}I', data[offset+8:offset+12])[0]
-                    orig_len = struct.unpack(f'{endian}I', data[offset+12:offset+16])[0]
-                except:
+                    struct.unpack(f'{endian}I', data[offset+12:offset+16])[0]
+                except Exception:
                     break
                 
                 offset += 16
@@ -137,7 +137,7 @@ class PCAPAnalyzer:
                 self.protocols['ARP'] += 1
             elif ethertype == 0x86DD:  # IPv6
                 self.protocols['IPv6'] += 1
-        except:
+        except Exception:
             pass
     
     def _analyze_ipv4(self, ip_packet: bytes) -> None:
@@ -154,7 +154,7 @@ class PCAPAnalyzer:
                 self.protocols['UDP'] += 1
             elif protocol == 1:  # ICMP
                 self.protocols['ICMP'] += 1
-        except:
+        except Exception:
             pass
     
     def _extract_strings(self, data: bytes) -> None:
@@ -210,9 +210,9 @@ class PCAPAnalyzer:
                     if all(32 <= b <= 126 or b in (9, 10, 13) for b in decoded):
                         decoded_str = decoded.decode('utf-8', errors='ignore')
                         self.base64_data.append((b64_str[:50], decoded_str))
-                except:
+                except Exception:
                     pass
-        except:
+        except Exception:
             pass
     
     def _extract_flags(self, data: bytes) -> None:
@@ -231,7 +231,7 @@ class PCAPAnalyzer:
             for pattern in patterns:
                 matches = re.findall(pattern, text, re.IGNORECASE)
                 self.flags.extend(matches)
-        except:
+        except Exception:
             pass
     
     def _extract_http(self, data: bytes) -> None:
@@ -248,9 +248,9 @@ class PCAPAnalyzer:
             
             # Also look for Host headers to construct full URLs
             host_pattern = re.compile(r'Host: ([^\r\n]+)')
-            hosts = host_pattern.findall(text)
+            host_pattern.findall(text)
             
-        except:
+        except Exception:
             pass
 
 

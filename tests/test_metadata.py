@@ -1,13 +1,10 @@
 """Tests for metadata extraction module"""
 
 import struct
-import pytest
 from filo.metadata import (
     extract_metadata,
     JPEGMetadataExtractor,
-    PNGMetadataExtractor,
-    MetadataResult,
-    MetadataField
+    PNGMetadataExtractor
 )
 
 

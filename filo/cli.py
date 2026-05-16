@@ -9,9 +9,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-from rich import print as rprint
 
 from filo import __version__
 from filo.analyzer import Analyzer
@@ -20,7 +18,7 @@ from filo.repair import RepairEngine
 from filo.carver import CarverEngine
 from filo.batch import BatchProcessor, BatchConfig
 from filo.export import JSONExporter, SARIFExporter, export_to_file
-from filo.container import ContainerDetector
+
 from filo.profiler import Profiler
 from filo.lineage import LineageTracker, OperationType
 from filo.ml import MLDetector
@@ -293,7 +291,7 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                 if not all_embedded and len(result.embedded_objects) > 3:
                     remaining = len(result.embedded_objects) - 3
                     console.print(f"\n  [dim]... and {remaining} more embedded artifact{'s' if remaining != 1 else ''}[/dim]")
-                    console.print(f"  [dim]Use -e or --all-embedded flag to show all[/dim]")
+                    console.print("  [dim]Use -e or --all-embedded flag to show all[/dim]")
             
             # Tool/creator fingerprints
             if result.fingerprints:
@@ -334,7 +332,7 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
             
             # CPU Architecture (for executable files)
             if result.architecture:
-                console.print(f"\n[bold cyan]🖥️  CPU Architecture:[/bold cyan]")
+                console.print("\n[bold cyan]🖥️  CPU Architecture:[/bold cyan]")
                 arch = result.architecture
                 console.print(f"  • [green]{arch.architecture}[/green] ({arch.bits}, {arch.endian})")
                 console.print(f"    [dim]Format: {arch.format} | Machine Code: 0x{arch.machine_code:04X}[/dim]")
@@ -358,13 +356,13 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
             if result.office_macros:
                 om = result.office_macros
                 if om.has_macros or om.suspicious_keywords:
-                    console.print(f"\n[bold yellow]📜 Office Macro Analysis:[/bold yellow]")
+                    console.print("\n[bold yellow]📜 Office Macro Analysis:[/bold yellow]")
                     if om.app_name:
                         console.print(f"  Application: [cyan]{om.app_name}[/cyan]")
                     if om.is_encrypted:
-                        console.print(f"  [red]🔒 Encrypted document[/red]")
+                        console.print("  [red]🔒 Encrypted document[/red]")
                     if om.is_protected:
-                        console.print(f"  [yellow]🔒 Write-protected[/yellow]")
+                        console.print("  [yellow]🔒 Write-protected[/yellow]")
                     if om.has_macros:
                         console.print(f"  Macros: [bold]{om.macro_count}[/bold] module(s)")
                     if om.auto_exec_macros:
@@ -396,17 +394,17 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                         
                         cipher_hints = crypto.get('cipher_hints', [])
                         if cipher_hints:
-                            console.print(f"\n[bold]Possible Cipher Types:[/bold]")
+                            console.print("\n[bold]Possible Cipher Types:[/bold]")
                             for hint in cipher_hints:
                                 console.print(f"  • {hint}")
                         
                         block_info = crypto.get('block_alignment')
                         if block_info and all_evidence:
-                            console.print(f"\n[dim]Block Analysis:[/dim]")
+                            console.print("\n[dim]Block Analysis:[/dim]")
                             if block_info.get('aes_aligned'):
                                 console.print(f"  [dim]• AES blocks: {block_info.get('aes_block_count')}[/dim]")
                             if block_info.get('pkcs7_padding_possible'):
-                                console.print(f"  [dim]• PKCS#7 padding possible[/dim]")
+                                console.print("  [dim]• PKCS#7 padding possible[/dim]")
                     elif crypto.get('encryption_indicators'):
                         # Show indicators even if not highly confident
                         console.print(f"  [dim]Crypto indicators: {', '.join(crypto.get('encryption_indicators', []))}[/dim]")
@@ -446,7 +444,7 @@ def analyze(file_path: str, output_json: bool, deep: bool, no_ml: bool, all_evid
                 if not all_evidence and len(result.evidence_chain) > 3:
                     remaining = len(result.evidence_chain) - 3
                     console.print(f"\n  [dim]... and {remaining} more evidence item{'s' if remaining != 1 else ''}[/dim]")
-                    console.print(f"  [dim]Use --all-evidence flag to show all detection evidence[/dim]")
+                    console.print("  [dim]Use --all-evidence flag to show all detection evidence[/dim]")
         
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}", style="bold")
@@ -761,7 +759,7 @@ def batch(directory: str, recursive: bool, workers: int, max_size: int, export: 
             progress.update(task, completed=result.total_files, total=result.total_files)
         
         # Show summary
-        console.print(f"\n[bold]Results Summary:[/bold]")
+        console.print("\n[bold]Results Summary:[/bold]")
         console.print(f"Total files: {result.total_files}")
         console.print(f"[green]Analyzed: {result.analyzed_files}[/green]")
         console.print(f"[red]Failed: {result.failed_files}[/red]")
@@ -827,7 +825,7 @@ def profile(file_path: str, profile: bool, show_stats: bool) -> None:
             data = f.read()
         
         with profiler.time_operation("analyze"):
-            result = analyzer.analyze(data)
+            analyzer.analyze(data)
         
         report = profiler.stop()
         
@@ -999,7 +997,7 @@ def lineage_history(operation: Optional[str], limit: int) -> None:
             )
         
         console.print(table)
-        console.print(f"\n[dim]Use 'filo lineage <hash>' to see full chain-of-custody[/dim]")
+        console.print("\n[dim]Use 'filo lineage <hash>' to see full chain-of-custody[/dim]")
         
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -1028,7 +1026,7 @@ def lineage_stats() -> None:
                     table.add_row(f"  • {op.upper()}", f"{count} records")
             console.print(table)
             
-            console.print(f"\n[bold]Time Range:[/bold]")
+            console.print("\n[bold]Time Range:[/bold]")
             console.print(f"  Oldest: {stats['oldest_record']}")
             console.print(f"  Newest: {stats['newest_record']}\n")
         else:
@@ -1067,7 +1065,7 @@ def reset_lineage(yes: bool) -> None:
         tracker.close()
         db_path.unlink(missing_ok=True)
         
-        console.print(f"[green]✓ Lineage database reset[/green]")
+        console.print("[green]✓ Lineage database reset[/green]")
         console.print(f"[dim]Deleted {stats['total_records']} records from {db_path}[/dim]")
         
     except Exception as e:
@@ -1119,9 +1117,9 @@ def stego(file_path: str, show_all: bool, extract_method: Optional[str], output_
             
             bits_str = parts[0]
             bits = int(bits_str.lstrip('b').rstrip('b'))
-            channels = parts[1]
+            parts[1]
             bit_order = parts[2]
-            pixel_order = parts[3]
+            parts[3]
             
             # Extract data using Python implementation
             png_info = detector.parse_png(data)
@@ -1146,7 +1144,7 @@ def stego(file_path: str, show_all: bool, extract_method: Optional[str], output_
                 try:
                     text = extracted.decode('utf-8', errors='ignore')
                     console.print(text)
-                except:
+                except Exception:
                     # Show hex dump
                     console.print(f"[dim]Binary data ({len(extracted)} bytes):[/dim]")
                     _print_hex_dump(extracted[:256])
@@ -1210,7 +1208,7 @@ def stego(file_path: str, show_all: bool, extract_method: Optional[str], output_
             
             console.print(f"[{color}]{method_str}[/{color}] .. {result.description}")
         
-        console.print(f"\n[dim]Tip: Use --extract=METHOD to extract specific data[/dim]")
+        console.print("\n[dim]Tip: Use --extract=METHOD to extract specific data[/dim]")
         console.print(f"[dim]Example: filo stego {file_path} --extract=\"b1,rgba,lsb,xy\" -o output.txt[/dim]")
         
     except Exception as e:
@@ -1253,14 +1251,14 @@ def pcap(file_path: str) -> None:
             sys.exit(1)
         
         # Display statistics
-        console.print(f"\n[bold]📊 Statistics[/bold]")
+        console.print("\n[bold]📊 Statistics[/bold]")
         console.print(f"  Packets: {stats.packet_count:,}")
         console.print(f"  Total bytes: {stats.total_bytes:,}")
         console.print(f"  File size: {stats.file_size:,} bytes")
         
         # Protocol breakdown
         if stats.protocols:
-            console.print(f"\n[bold]🔌 Protocols[/bold]")
+            console.print("\n[bold]🔌 Protocols[/bold]")
             for protocol, count in stats.protocols.most_common(10):
                 console.print(f"  {protocol}: {count:,} packets")
         
@@ -1293,8 +1291,8 @@ def pcap(file_path: str) -> None:
                 console.print(f"  {display}")
         
         # Recommendations
-        console.print(f"\n[bold]💡 Next Steps[/bold]")
-        console.print(f"  • Open in Wireshark for detailed protocol analysis")
+        console.print("\n[bold]💡 Next Steps[/bold]")
+        console.print("  • Open in Wireshark for detailed protocol analysis")
         console.print(f"  • Use 'tshark -r {file_path}' for packet inspection")
         console.print(f"  • Export HTTP objects: tshark -r {file_path} --export-objects http,./output")
         
@@ -1331,7 +1329,6 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
         filo extract nested.zip --max-depth 5
     """
     import zipfile
-    import shutil
     from pathlib import Path
     
     try:
@@ -1351,10 +1348,8 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
         ))
         
         extracted_count = 0
-        current_depth = 0
         files_to_process = [(file_path, output_dir, 0)]
         processed_hashes = set()
-        extraction_tree = []
         
         while files_to_process:
             current_file, current_output, depth = files_to_process.pop(0)
@@ -1435,7 +1430,7 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
                 except Exception as e:
                     console.print(f"{indent}    [red]✗[/red] Error: {e}")
         
-        console.print(f"\n[bold green]✓ Extraction complete![/bold green]")
+        console.print("\n[bold green]✓ Extraction complete![/bold green]")
         console.print(f"  Total files extracted: {extracted_count}")
         console.print(f"  Output directory: {output_dir}")
         
@@ -1455,16 +1450,16 @@ def extract(file_path: str, output: Optional[str], recursive: bool, max_depth: i
                         if full_match:
                             flag_text = full_match.group(0).decode('utf-8', errors='ignore')
                         flags_found.append((txt_file.relative_to(output_dir), flag_text))
-            except:
+            except Exception:
                 pass
         
         if flags_found:
-            console.print(f"\n[bold yellow]🚩 Flags found:[/bold yellow]")
+            console.print("\n[bold yellow]🚩 Flags found:[/bold yellow]")
             for filename, flag in flags_found:
                 console.print(f"  [green]{filename}:[/green] {flag}")
         
         if extracted_count == 0:
-            console.print(f"\n[yellow]No archives or polyglots found to extract[/yellow]")
+            console.print("\n[yellow]No archives or polyglots found to extract[/yellow]")
     
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -1604,7 +1599,7 @@ def reset_ml(yes: bool) -> None:
         
         model_path.unlink()
         
-        console.print(f"[green]✓ ML model reset[/green]")
+        console.print("[green]✓ ML model reset[/green]")
         console.print(f"[dim]Deleted {pattern_count} patterns from {model_path}[/dim]")
         
     except Exception as e:
@@ -1828,7 +1823,7 @@ def strings_cmd(file_path: str, min_len: int, min_entropy: float, encode_detect:
                 
                 console.print("  ".join(parts))
             
-            console.print(f"\n[dim]Use --json for machine-readable output[/dim]")
+            console.print("\n[dim]Use --json for machine-readable output[/dim]")
     
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")

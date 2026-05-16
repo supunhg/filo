@@ -2,7 +2,6 @@
 
 import pytest
 from filo.analyzer import Analyzer
-from filo.models import ConfidenceContribution
 
 
 def test_confidence_contributions_in_signature_analysis():

@@ -5,7 +5,6 @@ import zipfile
 import io
 import zlib
 from filo.analyzer import Analyzer
-from filo.contradictions import ContradictionDetector
 
 
 def test_png_with_invalid_compression():
@@ -169,7 +168,6 @@ def test_no_contradictions_in_valid_file():
     png_data = bytes.fromhex("89504E470D0A1A0A0000000D494844520000001000000010080200000090916836")
     
     # Add valid IDAT with proper zlib compression
-    import zlib
     raw_data = b'\x00' * 64  # Simple scanline data
     compressed = zlib.compress(raw_data)
     

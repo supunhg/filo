@@ -5,8 +5,7 @@ Extracts EXIF, IPTC, XMP, and other metadata from images and documents.
 
 import struct
 import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import List, Optional, Any
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -621,7 +620,7 @@ class JPEGMetadataExtractor:
                             if self._is_suspicious(value):
                                 result.has_suspicious = True
                                 result.suspicious_fields.append(field_name)
-                    except:
+                    except Exception:
                         pass
             
             offset = value_start + length
@@ -726,7 +725,7 @@ class JPEGMetadataExtractor:
                                             value=desc_text,
                                             group="ICC_Profile"
                                         ))
-                            except:
+                            except Exception:
                                 pass
         
         except Exception as e:
@@ -855,7 +854,7 @@ class PNGMetadataExtractor:
                                 if self._is_suspicious(text):
                                     result.has_suspicious = True
                                     result.suspicious_fields.append(keyword)
-                            except:
+                            except Exception:
                                 pass
                 
                 # tIME chunk

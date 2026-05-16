@@ -2,9 +2,8 @@
 Tests for Analyzer
 """
 
-import pytest
 
-from filo.analyzer import Analyzer, SignatureAnalyzer, StatisticalAnalyzer
+from filo.analyzer import Analyzer, StatisticalAnalyzer
 
 
 def test_analyzer_initialization():

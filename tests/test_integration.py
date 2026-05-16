@@ -2,8 +2,6 @@
 Integration tests
 """
 
-import pytest
-from pathlib import Path
 
 from filo import Analyzer, RepairEngine
 

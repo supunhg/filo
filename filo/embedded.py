@@ -13,7 +13,6 @@ Author: Filo Forensics Team
 """
 
 import logging
-from pathlib import Path
 from typing import Optional
 
 from filo.formats import FormatDatabase

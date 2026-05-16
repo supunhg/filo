@@ -2,7 +2,6 @@
 import struct
 import zlib
 from typing import List, Optional, Set
-from pathlib import Path
 
 from filo.models import PolyglotMatch
 
@@ -53,7 +52,7 @@ class PolyglotDetector:
                 confidence=0.92,
                 description="PDF with embedded JavaScript payload",
                 risk_level="high",
-                evidence=f"Valid PDF + JS payload detected"
+                evidence="Valid PDF + JS payload detected"
             ))
         
         if len(valid_formats) < 2:
