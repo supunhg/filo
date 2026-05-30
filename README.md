@@ -1,5 +1,14 @@
 # Filo - Forensic Intelligence & Learning Operator
 
+> **⚠️ ARCHIVED** — This Python version is no longer actively developed.
+> Development has moved to **[filo-go](https://github.com/supunhg/filo-go)** — a complete rewrite in Go with:
+> - Single binary, zero dependencies
+> - 19,000+ files/sec batch processing
+> - MCP server for AI-assisted analysis
+> - All features from this version plus new capabilities
+>
+> This repository is archived for reference. Use filo-go for new deployments.
+
 **Battle-tested file forensics platform for security professionals**
 
 Filo transforms unknown binary blobs into classified, repairable, and explainable artifacts with offline ML learning capabilities.
