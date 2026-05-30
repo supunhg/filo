@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e
 
-VERSION="0.3.0"
+# Auto-sync version from pyproject.toml
+VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+if [ -z "$VERSION" ]; then
+    VERSION="0.3.0"
+fi
+
 PKG_NAME="filo-forensics_${VERSION}_all"
 BUILD_DIR="build/${PKG_NAME}"
 
@@ -25,6 +30,10 @@ touch "${BUILD_DIR}/opt/filo/models/.gitkeep"
 
 # Copy DEBIAN control files
 cp packaging/DEBIAN/control "${BUILD_DIR}/DEBIAN/"
+
+# Auto-sync version in control file
+sed -i "s/^Version: .*/Version: ${VERSION}/" "${BUILD_DIR}/DEBIAN/control"
+
 cp packaging/DEBIAN/postinst "${BUILD_DIR}/DEBIAN/"
 cp packaging/DEBIAN/prerm "${BUILD_DIR}/DEBIAN/"
 cp packaging/DEBIAN/postrm "${BUILD_DIR}/DEBIAN/"
