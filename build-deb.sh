@@ -2,9 +2,9 @@
 set -e
 
 # Auto-sync version from pyproject.toml
-VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+VERSION=$(grep 'version = ' pyproject.toml | head -1 | sed 's/.*version = "\([^"]*\)".*/\1/')
 if [ -z "$VERSION" ]; then
-    VERSION="0.3.0"
+    VERSION="0.3.1"
 fi
 
 PKG_NAME="filo-forensics_${VERSION}_all"
